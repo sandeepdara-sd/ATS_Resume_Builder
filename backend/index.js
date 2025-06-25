@@ -14,7 +14,7 @@ import router from './routes/feedback.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
 
 // console.log('🚀 Starting ATS Resume Builder Server...');
 // console.log('📍 Environment:', process.env.NODE_ENV || 'development');
@@ -193,7 +193,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
-const server = app.listen(PORT, () => {
+const server = app.listen(5000, () => {
   // console.log(`🚀 Server running on port ${PORT}`);
   // console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
   // console.log(`📍 API docs: http://localhost:${PORT}/api`);
