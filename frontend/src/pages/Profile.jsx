@@ -188,10 +188,10 @@ function Profile() {
 
     try {
       const compressedFile = await imageCompression(file, {
-      maxSizeMB: 1, // Max size after compression (1MB)
-      maxWidthOrHeight: 1024, // Optional resizing
-      useWebWorker: true
-    });
+        maxSizeMB: 1, // Max size after compression (1MB)
+        maxWidthOrHeight: 1024, // Optional resizing
+        useWebWorker: true
+      });
       const imageUrl = await uploadImageToCloudinary(compressedFile);
       setProfileData(prev => ({ 
         ...prev, 
