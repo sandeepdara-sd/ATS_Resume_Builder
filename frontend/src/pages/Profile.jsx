@@ -56,6 +56,7 @@ function Profile() {
 
   const [editing, setEditing] = useState(false);
   const [loading, setSaving] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [imageUploading, setImageUploading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [resumes, setResumes] = useState([]);
@@ -74,51 +75,138 @@ function Profile() {
 
   useEffect(() => {
     if (user && token) {
+      console.log('User and token available:', { 
+        userId: user.uid, 
+        tokenExists: !!token,
+        apiUrl: api_url 
+      });
       fetchUserProfile();
       fetchUserResumes();
+    } else {
+      console.log('Missing user or token:', { user: !!user, token: !!token });
     }
   }, [user, token]);
 
   const fetchUserProfile = async () => {
+    if (!user?.uid || !token) {
+      console.error('Missing user ID or token for profile fetch');
+      setProfileLoading(false);
+      return;
+    }
+
     try {
+      setProfileLoading(true);
+      console.log('Fetching profile for user:', user.uid);
+      console.log('API URL:', `${api_url}/api/users/${user.uid}`);
+      console.log('Token preview:', token.substring(0, 20) + '...');
+
       const response = await axios.get(`${api_url}/api/users/${user.uid}`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
+        timeout: 10000, // 10 second timeout
       });
 
-      const data = response.data.user || {};
+      console.log('Profile API Response:', response);
+      console.log('Profile data received:', response.data);
+
+      const data = response.data.user || response.data || {};
+      
       setProfileData({
-        displayName: data.displayName || '',
-        email: data.email || '',
-        photoURL: data.photoURL || '',
+        displayName: data.displayName || user.displayName || '',
+        email: data.email || user.email || '',
+        photoURL: data.photoURL || user.photoURL || '',
         phone: data.phone || '',
         location: data.location || '',
         bio: data.bio || '',
-        skills: data.skills || [],
+        skills: Array.isArray(data.skills) ? data.skills : [],
         experience: data.experience || '',
         education: data.education || '',
       });
+
+      console.log('Profile data set successfully');
     } catch (error) {
-      console.error('Failed to fetch profile data:', error);
+      console.error('Profile fetch error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      });
+
+      // Fallback to user data from auth context
+      if (user) {
+        console.log('Using fallback user data from auth context');
+        setProfileData({
+          displayName: user.displayName || '',
+          email: user.email || '',
+          photoURL: user.photoURL || '',
+          phone: '',
+          location: '',
+          bio: '',
+          skills: [],
+          experience: '',
+          education: '',
+        });
+      }
+
+      let errorMessage = 'Failed to load profile data';
+      if (error.response?.status === 404) {
+        errorMessage = 'Profile not found. Using basic account information.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timeout. Please check your connection.';
+      }
+
       setSnackbar({
         open: true,
-        message: 'Failed to load profile data',
-        severity: 'error',
+        message: errorMessage,
+        severity: error.response?.status === 404 ? 'warning' : 'error',
       });
+    } finally {
+      setProfileLoading(false);
     }
   };
 
   const fetchUserResumes = async () => {
+    if (!token) {
+      console.error('No token available for resumes fetch');
+      return;
+    }
+
     try {
+      console.log('Fetching resumes...');
+      console.log('Resumes API URL:', `${api_url}/api/resumes`);
+      
       const response = await axios.get(`${api_url}/api/resumes`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+      
+      console.log('Resumes API Response:', response);
+      console.log('Resumes data:', response.data);
+      
+      setResumes(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Resumes fetch error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method
         }
       });
-      setResumes(response.data);
-    } catch (error) {
-      console.error('Failed to fetch resumes:', error);
+      setResumes([]);
     }
   };
 
@@ -150,7 +238,7 @@ function Profile() {
       }
 
       const data = await response.json();
-      return data.secure_url; // This is the Cloudinary URL
+      return data.secure_url;
     } catch (error) {
       console.error('Cloudinary upload error:', error);
       throw error;
@@ -173,7 +261,7 @@ function Profile() {
     }
 
     // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setSnackbar({
         open: true,
@@ -187,10 +275,10 @@ function Profile() {
 
     try {
       const compressedFile = await imageCompression(file, {
-      maxSizeMB: 1, // Max size after compression (1MB)
-      maxWidthOrHeight: 1024, // Optional resizing
-      useWebWorker: true
-    });
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true
+      });
       const imageUrl = await uploadImageToCloudinary(compressedFile);
       setProfileData(prev => ({ 
         ...prev, 
@@ -215,34 +303,64 @@ function Profile() {
   };
 
   const handleSave = async () => {
-    if (!user || !token) return;
+    if (!user || !token) {
+      console.error('Missing user or token for save operation');
+      return;
+    }
+    
     setSaving(true);
 
     try {
-      const response = await axios.put(`${api_url}/api/users/${user.uid}`, profileData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('Saving profile data:', profileData);
+      
+      const response = await axios.put(
+        `${api_url}/api/users/${user.uid}`, 
+        profileData, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
 
+      console.log('Save response:', response);
+
+      const updatedUser = response.data.user || response.data;
       setProfileData({
-        displayName: response.data.user.displayName,
-        email: response.data.user.email,
-        phone: response.data.user.phone || '',
-        photoURL: response.data.user.photoURL || '',
-        location: response.data.user.location || '',
-        bio: response.data.user.bio || '',
-        skills: response.data.user.skills || [],
-        experience: response.data.user.experience || '',
-        education: response.data.user.education || '',
+        displayName: updatedUser.displayName || profileData.displayName,
+        email: updatedUser.email || profileData.email,
+        phone: updatedUser.phone || '',
+        photoURL: updatedUser.photoURL || profileData.photoURL,
+        location: updatedUser.location || '',
+        bio: updatedUser.bio || '',
+        skills: Array.isArray(updatedUser.skills) ? updatedUser.skills : [],
+        experience: updatedUser.experience || '',
+        education: updatedUser.education || '',
       });
 
       setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
       setEditing(false);
     } catch (error) {
-      console.error('Update failed:', error.response?.data || error.message);
-      setSnackbar({ open: true, message: 'Update failed', severity: 'error' });
+      console.error('Save error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          data: error.config?.data
+        }
+      });
+      
+      let errorMessage = 'Update failed';
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Permission denied. You can only update your own profile.';
+      }
+      
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -309,6 +427,18 @@ function Profile() {
       transition: { duration: 0.6 }
     }
   };
+
+  // Show loading state while fetching profile
+  if (profileLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Navbar />
+        <Container maxWidth="lg" sx={{ py: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <CircularProgress size={60} />
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
@@ -490,10 +620,10 @@ function Profile() {
                 </Box>
 
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  {user?.displayName || user?.email?.split('@')[0]}
+                  {profileData.displayName || user?.displayName || user?.email?.split('@')[0]}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {user?.email}
+                  {profileData.email || user?.email}
                 </Typography>
                 <Box sx={{ mt: 2 }}>
                   <Chip icon={<Star />} label="Premium User" color="primary" variant="outlined" />
