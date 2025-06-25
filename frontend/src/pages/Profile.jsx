@@ -139,9 +139,9 @@ function Profile() {
         }
       });
 
-      // Fallback to user data from auth context
-      if (user) {
-        console.log('Using fallback user data from auth context');
+      // If 404, use fallback data from auth context without showing error
+      if (error.response?.status === 404) {
+        console.log('Profile endpoint not found, using fallback user data from auth context');
         setProfileData({
           displayName: user.displayName || '',
           email: user.email || '',
@@ -153,12 +153,15 @@ function Profile() {
           experience: '',
           education: '',
         });
+        
+        // Don't show error for 404, just use fallback data silently
+        setProfileLoading(false);
+        return;
       }
 
+      // For other errors, show appropriate message
       let errorMessage = 'Failed to load profile data';
-      if (error.response?.status === 404) {
-        errorMessage = 'Profile not found. Using basic account information.';
-      } else if (error.response?.status === 401) {
+      if (error.response?.status === 401) {
         errorMessage = 'Authentication failed. Please log in again.';
       } else if (error.code === 'ECONNABORTED') {
         errorMessage = 'Request timeout. Please check your connection.';
@@ -167,12 +170,20 @@ function Profile() {
       setSnackbar({
         open: true,
         message: errorMessage,
-        severity: error.response?.status === 404 ? 'warning' : 'error',
+        severity: 'error',
       });
-    } finally {
-      setProfileLoading(false);
-    }
-  };
+
+      // Still set fallback data even with other errors
+      if (user) {
+        setProfileData({
+          displayName: user.displayName || '',
+          email: user.email || '',
+          photoURL: user.photoURL || '',
+          phone: '',
+          location: '',
+          bio: '',
+          skills: [],
+          experience: '',
 
   const fetchUserResumes = async () => {
     if (!token) {
