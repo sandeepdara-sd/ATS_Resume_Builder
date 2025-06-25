@@ -1,0 +1,6 @@
+/* src/global.css */
+.scaled-container {
+  transform: scale(0.9);
+  transform-origin: top center;
+  width: 111.11%; /* (1 / 0.9) * 100% to prevent layout shrinking */
+}
