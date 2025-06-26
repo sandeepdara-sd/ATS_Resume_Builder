@@ -6,7 +6,7 @@ This project empowers users to create professional, ATS-friendly resumes tailore
 
 ---
 
-🎯 **[🚀 Live Demo](https://sd-resume-builder.vercel.app/)**  
+🎯 🚀 Live Demo  
 🔗 https://sd-resume-builder.vercel.app/
 
 
