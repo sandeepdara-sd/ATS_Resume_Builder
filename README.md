@@ -6,7 +6,7 @@ This project empowers users to create professional, ATS-friendly resumes tailore
 
 ---
 
-🎯 🚀 Live Demo  
+🎯 **[🚀 Live Demo](https://sd-resume-builder.vercel.app/)**  
 🔗 https://sd-resume-builder.vercel.app/
 
 
@@ -123,6 +123,15 @@ npm start
 cd frontend
 npm start
 ```
+
+---
+
+## 🌍 Live Deployment
+
+✨ Your app is live here:  
+🔗 **[https://sd-resume-builder.vercel.app/](https://sd-resume-builder.vercel.app/)**
+
+Deployed using **Vercel** for the frontend and **Render/MongoDB Atlas** for backend/database.
 
 ---
 
