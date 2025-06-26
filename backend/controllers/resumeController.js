@@ -396,21 +396,34 @@ export const deleteResume = async (req, res) => {
 export const downloadResume = async (req, res) => {
   try {
     const resumeData = req.body;
+
+    console.log('📥 Generating resume download (HTML-PDF)...');
+
+    if (!resumeData || !resumeData.personalDetails) {
+      return res.status(400).json({ error: 'Resume data is required' });
+    }
+
+    // 1. Generate HTML content
     const htmlContent = generateResumeHTML(resumeData);
 
+    // 2. Prepare PDF conversion
     const file = { content: htmlContent };
-    const options = { format: 'A4' };
+    const options = { format: 'A4', printBackground: true };
 
+    // 3. Generate PDF buffer
     const pdfBuffer = await pdf.generatePdf(file, options);
 
+    // 4. Send PDF to client
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.pdf"`
     );
     res.end(pdfBuffer);
+
+    console.log('✅ Resume PDF generated and sent (html-pdf-node)');
   } catch (error) {
-    console.error('❌ PDF Generation Error:', error);
-    res.status(500).json({ error: 'PDF generation failed' });
+    console.error('❌ Error generating resume PDF:', error);
+    res.status(500).json({ error: 'Failed to generate resume PDF' });
   }
 };
