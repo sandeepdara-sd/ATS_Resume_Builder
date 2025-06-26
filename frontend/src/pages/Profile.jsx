@@ -122,7 +122,7 @@ function Profile() {
       const resumesWithScores = response.data.filter(resume => resume.score !== null && resume.score !== undefined);
       const avgScore = resumesWithScores.length > 0
         ? Math.round(resumesWithScores.reduce((sum, resume) => sum + (resume.score || 0), 0) / resumesWithScores.length)
-        : 95; // fallback value
+        : 0; // fallback value
       setAvgScore(avgScore);
     } catch (error) {
       console.error('Failed to fetch resumes:', error);
