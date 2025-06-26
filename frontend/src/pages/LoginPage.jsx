@@ -65,9 +65,9 @@ function LoginPage() {
     try {
       await loginWithGoogle();
       setLoginSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
+      // setTimeout(() => {
+      navigate('/dashboard');
+      // }, 1000);
     } catch (error) {
       setError('Failed to log in with Google.');
       setLoading(false);
