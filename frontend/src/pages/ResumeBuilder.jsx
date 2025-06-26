@@ -445,7 +445,7 @@ function ResumeBuilder() {
                 sx={{ 
                   fontWeight: 600,
                   color: '#e65100',
-                  fontSize: '1.05rem'
+                  fontSize: '0.8rem'
                 }}
               >
                 Please verify all details before saving or downloading your resume
