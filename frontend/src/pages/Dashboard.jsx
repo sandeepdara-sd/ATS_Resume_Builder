@@ -29,7 +29,8 @@ import {
   Snackbar,
   Skeleton,
   DialogContentText,
-  Badge
+  Badge,
+  CircularProgress
 } from '@mui/material';
 import {
   CloudUpload,
@@ -69,6 +70,7 @@ function Dashboard() {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, resume: null });
+  const [downloadingResumeId, setDownloadingResumeId] = useState(null);
   const [stats, setStats] = useState({
     totalResumes: 0,
     avgScore: 0,
@@ -182,6 +184,7 @@ function Dashboard() {
 
   const handleDownloadResume = async (resume) => {
     try {
+      setDownloadingResumeId(resume._id);
       const response = await axios.post(`${api_url}/api/download-resume`, resume, {
         responseType: 'blob'
       });
@@ -202,6 +205,9 @@ function Dashboard() {
         severity: 'error'
       });
     }
+    finally {
+    setDownloadingResumeId(null); 
+  }
   };
 
   const handleDeleteClick = (resume) => {
@@ -832,13 +838,19 @@ function Dashboard() {
                               <IconButton
                                 size="small"
                                 onClick={() => handleDownloadResume(resume)}
+                                disabled={downloadingResumeId === resume._id}
                                 sx={{
                                   bgcolor: 'success.main',
                                   color: 'white',
-                                  '&:hover': { bgcolor: 'success.dark' }
+                                  '&:hover': { bgcolor: 'success.dark' },
+                                  '&:disabled': { bgcolor: 'success.light' }
                                 }}
                               >
-                                <Download sx={{ fontSize: 16 }} />
+                                {downloadingResumeId === resume._id ? (
+                                  <CircularProgress size={16} color="inherit" />
+                                ) : (
+                                  <Download sx={{ fontSize: 16 }} />
+                                )}
                               </IconButton>
                               <IconButton
                                 size="small"
