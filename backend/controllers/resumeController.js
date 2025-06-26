@@ -3,9 +3,9 @@ import User from '../models/User.js';
 import { extractTextFromPDF } from '../utils/pdfExtractor.js';
 import { generateResumeHTML } from '../utils/resumeTemplate.js';
 import { model } from '../config/gemini.js';
-import puppeteer from 'puppeteer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import * as pdf from 'html-pdf-node';
 
 dotenv.config();
 
