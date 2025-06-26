@@ -349,36 +349,59 @@ export const deleteResume = async (req, res) => {
 //   }
 // };
 
+// export const downloadResume = async (req, res) => {
+//   try {
+//     const resumeData = req.body;
+
+//     console.log('📥 Generating resume download...');
+
+//     if (!resumeData || !resumeData.personalDetails) {
+//       return res.status(400).json({ error: 'Resume data is required' });
+//     }
+
+//     const htmlContent = generateResumeHTML(resumeData);
+
+//     const browser = await puppeteer.launch({
+//       headless: true,
+//       args: ['--no-sandbox', '--disable-setuid-sandbox'],
+//       executablePath:
+//         process.env.NODE_ENV === 'production'
+//           ? (await import('puppeteer')).executablePath()
+//           : undefined,
+//     });
+
+//     const page = await browser.newPage();
+//     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+//     const pdfBuffer = await page.pdf({
+//       format: 'A4',
+//       printBackground: true,
+//     });
+
+//     await browser.close();
+
+//     res.setHeader('Content-Type', 'application/pdf');
+//     res.setHeader(
+//       'Content-Disposition',
+//       `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.pdf"`
+//     );
+//     res.end(pdfBuffer);
+
+//     console.log('✅ Resume PDF generated and sent successfully');
+//   } catch (error) {
+//     console.error('❌ Error generating resume:', error);
+//     res.status(500).json({ error: 'Failed to generate resume: ' + error.message });
+//   }
+// };
 export const downloadResume = async (req, res) => {
   try {
     const resumeData = req.body;
-
-    console.log('📥 Generating resume download...');
-
-    if (!resumeData || !resumeData.personalDetails) {
-      return res.status(400).json({ error: 'Resume data is required' });
-    }
-
     const htmlContent = generateResumeHTML(resumeData);
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath:
-        process.env.NODE_ENV === 'production'
-          ? (await import('puppeteer')).executablePath()
-          : undefined,
-    });
+    const file = { content: htmlContent };
+    const options = { format: 'A4' };
 
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-    });
-
-    await browser.close();
+    const pdfBuffer = await pdf.generatePdf(file, options);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -386,10 +409,8 @@ export const downloadResume = async (req, res) => {
       `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.pdf"`
     );
     res.end(pdfBuffer);
-
-    console.log('✅ Resume PDF generated and sent successfully');
   } catch (error) {
-    console.error('❌ Error generating resume:', error);
-    res.status(500).json({ error: 'Failed to generate resume: ' + error.message });
+    console.error('❌ PDF Generation Error:', error);
+    res.status(500).json({ error: 'PDF generation failed' });
   }
 };
