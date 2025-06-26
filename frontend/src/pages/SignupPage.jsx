@@ -21,6 +21,7 @@ import { Google, Visibility, VisibilityOff, Email, Lock, Person } from '@mui/ico
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function SignupPage() {
   const [email, setEmail] = useState('');
@@ -30,6 +31,7 @@ function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   
   const { signup, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -52,7 +54,10 @@ function SignupPage() {
 
     try {
       await signup(email, password);
-      navigate('/dashboard');
+      setLoginSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error) {
       setError('Failed to create account. Please try again.');
     } finally {
@@ -66,13 +71,19 @@ function SignupPage() {
 
     try {
       await loginWithGoogle();
-      navigate('/dashboard');
+      setLoginSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error) {
       setError('Failed to sign up with Google.');
     } finally {
       setLoading(false);
     }
   };
+  if (loginSuccess) {
+    return <LoadingSpinner/>;
+  }
 
   return (
     <div>
