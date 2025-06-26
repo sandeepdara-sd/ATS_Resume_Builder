@@ -35,7 +35,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false); // ✅ New state
+  const [loginSuccess, setLoginSuccess] = useState(false); 
 
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -47,10 +47,10 @@ function LoginPage() {
 
     try {
       await login(email, password);
-      setLoginSuccess(true); // ✅ Trigger loading screen
+      setLoginSuccess(true);
       setTimeout(() => {
         navigate('/dashboard');
-      }, 1000); // Optional delay to show loading screen
+      }, 1000); 
     } catch (error) {
       console.log(error);
       setError('Failed to log in. Please check your credentials.');
@@ -65,16 +65,15 @@ function LoginPage() {
     try {
       await loginWithGoogle();
       setLoginSuccess(true);
-      // setTimeout(() => {
-      navigate('/dashboard');
-      // }, 1000);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error) {
       setError('Failed to log in with Google.');
       setLoading(false);
     }
   };
 
-  // ✅ Show full-screen loading during redirect
   if (loginSuccess) {
     return <LoadingSpinner/>;
   }
