@@ -6,6 +6,10 @@ This project empowers users to create professional, ATS-friendly resumes tailore
 
 ---
 
+🎯 **[🚀 Live Demo](https://sd-resume-builder.vercel.app/)**  
+🔗 https://sd-resume-builder.vercel.app/
+
+
 ## 🚀 Why This Project?
 
 Many job seekers struggle to craft a resume that is both professional and ATS-compliant. This tool solves that by:
