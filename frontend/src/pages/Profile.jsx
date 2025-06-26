@@ -58,6 +58,7 @@ function Profile() {
   const [editing, setEditing] = useState(false);
   const [loading, setSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [avgscore, setAvgScore] = useState(); 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [resumes, setResumes] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, resumeId: null, resumeName: '' });
@@ -118,6 +119,11 @@ function Profile() {
         }
       });
       setResumes(response.data);
+      const resumesWithScores = response.data.filter(resume => resume.score !== null && resume.score !== undefined);
+      const avgScore = resumesWithScores.length > 0
+        ? Math.round(resumesWithScores.reduce((sum, resume) => sum + (resume.score || 0), 0) / resumesWithScores.length)
+        : 95; // fallback value
+      setAvgScore(avgScore);
     } catch (error) {
       console.error('Failed to fetch resumes:', error);
     }
@@ -511,7 +517,7 @@ function Profile() {
                     <Typography variant="body2" color="text.secondary">Resumes Created</Typography>
                   </Grid>
                   <Grid item xs={6} sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ color: 'success.main', fontWeight: 700 }}>95%</Typography>
+                    <Typography variant="h4" sx={{ color: 'success.main', fontWeight: 700 }}>{avgscore}%</Typography>
                     <Typography variant="body2" color="text.secondary">ATS Score</Typography>
                   </Grid>
                 </Grid>
