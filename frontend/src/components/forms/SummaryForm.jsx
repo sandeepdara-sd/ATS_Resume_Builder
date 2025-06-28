@@ -9,6 +9,7 @@ import {
 import { AutoAwesome } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { api_url } from './../../helper/Helper';
 
 function SummaryForm({ data, type, personalDetails, onChange }) {
   const [summary, setSummary] = useState(data || '');
@@ -24,7 +25,7 @@ function SummaryForm({ data, type, personalDetails, onChange }) {
     setError('');
 
     try {
-      const response = await axios.post('/api/generate-summary', {
+      const response = await axios.post(`${api_url}/api/generate-summary`, {
         type,
         personalDetails
       });
