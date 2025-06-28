@@ -11,6 +11,7 @@ import {
 import { AutoAwesome, Add } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { api_url } from '../../helper/Helper';
 
 function SkillsForm({ data, personalDetails, onChange }) {
   const [skills, setSkills] = useState(data || []);
@@ -45,7 +46,7 @@ function SkillsForm({ data, personalDetails, onChange }) {
     setError('');
 
     try {
-      const response = await axios.post('/api/generate-skills', {
+      const response = await axios.post(`${api_url}/api/generate-skills`, {
         personalDetails,
         existingSkills: skills
       });
