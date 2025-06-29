@@ -289,8 +289,8 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 
-
-const server = app.listen(5000, () => {
+const PORT = 5000;
+const server = app.listen(PORT, () => {
   console.log(`✅ Server with Admin Dashboard is ready on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
