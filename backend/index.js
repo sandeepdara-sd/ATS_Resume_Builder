@@ -8,23 +8,18 @@ import { initializeFirebase } from './config/firebase.js';
 import authRoutes from './routes/auth.js';
 import resumeRoutes from './routes/resume.js';
 import aiRoutes from './routes/ai.js';
-import router from './routes/feedback.js';
+import feedbackRoutes from './routes/feedback.js';
+import adminRoutes from './routes/admin.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-
-// console.log('🚀 Starting ATS Resume Builder Server...');
-// console.log('📍 Environment:', process.env.NODE_ENV || 'development');
-
 // Initialize Firebase Admin SDK
-// console.log('🔄 Initializing Firebase Admin SDK...');
 initializeFirebase();
 
 // Connect to MongoDB
-// console.log('🔄 Connecting to MongoDB...');
 await connectDB();
 
 // Test MongoDB connection
@@ -38,7 +33,12 @@ setTimeout(async () => {
 }, 2000);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://sd-resume-builder.vercel.app', 'https://your-admin-domain.com']
+    : ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true
+}));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -46,14 +46,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Request logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  // console.log(`📝 ${req.method} ${req.path} - ${timestamp}`);
   
-  // Log request body for debugging (excluding sensitive data)
   if (req.method === 'POST' && req.body && Object.keys(req.body).length > 0) {
     const logBody = { ...req.body };
     if (logBody.password) logBody.password = '***';
     if (logBody.idToken) logBody.idToken = '***';
-    // console.log('📦 Request body:', JSON.stringify(logBody, null, 2).substring(0, 500));
   }
   
   next();
@@ -63,10 +60,11 @@ app.use((req, res, next) => {
 app.use('/api', authRoutes);
 app.use('/api', resumeRoutes);
 app.use('/api', aiRoutes);
-app.use('/api/feedback',router )
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use("/",(req,res)=>{
-  res.send("Welocme to ATS Resume Builder ")
+  res.send("Welcome to ATS Resume Builder with Admin Dashboard")
 })
 
 // Health check endpoint
@@ -75,27 +73,31 @@ app.get('/api/health', async (req, res) => {
   
   res.json({ 
     status: 'OK', 
-    message: 'ATS Resume Builder Server is running',
+    message: 'ATS Resume Builder Server with Admin Dashboard is running',
     timestamp: new Date().toISOString(),
     services: {
       mongodb: mongoStatus ? 'Connected' : 'Disconnected',
       firebase: 'Initialized',
-      ai: 'Available'
+      ai: 'Available',
+      admin: 'Available'
     },
-    version: '1.0.0'
+    version: '2.0.0'
   });
 });
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
-    message: 'ATS Resume Builder API',
-    version: '1.0.0',
+    message: 'ATS Resume Builder API with Admin Dashboard',
+    version: '2.0.0',
     endpoints: {
       auth: [
         'POST /api/register',
         'POST /api/login', 
-        'POST /api/sync-firebase-user'
+        'POST /api/sync-firebase-user',
+        'POST /api/forgot-password',
+        'POST /api/reset-password',
+        'POST /api/update-password'
       ],
       resume: [
         'POST /api/upload-resume',
@@ -109,6 +111,13 @@ app.get('/api', (req, res) => {
         'POST /api/generate-summary',
         'POST /api/generate-skills',
         'POST /api/analyze-resume'
+      ],
+      admin: [
+        'POST /api/admin/login',
+        'GET /api/admin/dashboard/stats',
+        'GET /api/admin/users',
+        'GET /api/admin/resumes',
+        'GET /api/admin/feedback'
       ]
     }
   });
@@ -118,7 +127,6 @@ app.get('/api', (req, res) => {
 app.use((error, req, res, next) => {
   console.error('❌ Server Error:', error);
   
-  // Handle specific error types
   if (error.name === 'ValidationError') {
     return res.status(400).json({ 
       error: 'Validation error', 
@@ -167,11 +175,9 @@ app.use('*', (req, res) => {
 const gracefulShutdown = (signal) => {
   console.log(`🔄 ${signal} received, shutting down gracefully...`);
   
-  // Close server
   server.close(() => {
     console.log('🔄 HTTP server closed');
     
-    // Close database connection
     if (mongoose.connection.readyState === 1) {
       mongoose.connection.close(() => {
         console.log('🔄 MongoDB connection closed');
@@ -182,7 +188,6 @@ const gracefulShutdown = (signal) => {
     }
   });
   
-  // Force close after 10 seconds
   setTimeout(() => {
     console.error('❌ Could not close connections in time, forcefully shutting down');
     process.exit(1);
@@ -194,17 +199,13 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const server = app.listen(5000, () => {
-  // console.log(`🚀 Server running on port ${PORT}`);
-  // console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-  // console.log(`📍 API docs: http://localhost:${PORT}/api`);
-  // console.log(`📍 Frontend: http://localhost:5173`);
-  console.log('✅ Server is ready to accept connections');
+  console.log('✅ Server with Admin Dashboard is ready to accept connections');
 });
 
 // Handle server errors
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
+    console.error(`❌ Port 5000 is already in use`);
     process.exit(1);
   } else {
     console.error('❌ Server error:', error);

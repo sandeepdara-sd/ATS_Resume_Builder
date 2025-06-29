@@ -1,8 +1,21 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import PasswordReset from '../models/PasswordReset.js';
 import admin, { canVerifyFirebaseTokens } from '../config/firebase.js';
+import nodemailer from 'nodemailer';
 
+// Email configuration
+const createEmailTransporter = () => {
+  return nodemailer.createTransporter({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER || 'your-email@gmail.com',
+      pass: process.env.EMAIL_PASS || 'your-app-password'
+    }
+  });
+};
 
 export const register = async (req, res) => {
   try {
@@ -31,8 +44,6 @@ export const register = async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
-
-    // console.log('✅ User registered successfully:', user.email);
 
     res.status(201).json({ 
       token, 
@@ -72,8 +83,6 @@ export const login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // console.log('✅ User logged in successfully:', user.email);
-
     res.json({ 
       token, 
       user: { 
@@ -88,6 +97,158 @@ export const login = async (req, res) => {
   }
 };
 
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Save reset token to database
+    await PasswordReset.create({
+      email: user.email,
+      token: resetToken,
+      userId: user._id,
+      expiresAt: new Date(Date.now() + 3600000) // 1 hour
+    });
+
+    // Create reset URL
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
+
+    // Send email
+    const transporter = createEmailTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
+      to: email,
+      subject: 'Password Reset Request - ATS Resume Builder',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #667eea;">Password Reset Request</h2>
+          <p>Hello ${user.displayName || 'User'},</p>
+          <p>You requested a password reset for your ATS Resume Builder account.</p>
+          <p>Click the button below to reset your password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+          </div>
+          <p>Or copy and paste this link in your browser:</p>
+          <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+          <p><strong>This link will expire in 1 hour.</strong></p>
+          <p>If you didn't request this password reset, please ignore this email.</p>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #666; font-size: 12px;">ATS Resume Builder Team</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ 
+      message: 'Password reset email sent successfully',
+      email: email 
+    });
+  } catch (error) {
+    console.error('❌ Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to send password reset email' });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, email, newPassword } = req.body;
+
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({ error: 'Token, email, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Find valid reset token
+    const resetRecord = await PasswordReset.findOne({
+      token,
+      email,
+      used: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!resetRecord) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Find user and update password
+    const user = await User.findById(resetRecord.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Hash new password and update user
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.updatedAt = new Date();
+    await user.save();
+
+    // Mark reset token as used
+    resetRecord.used = true;
+    await resetRecord.save();
+
+    console.log('✅ Password reset successful for:', email);
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('❌ Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash and update new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.updatedAt = new Date();
+    await user.save();
+
+    console.log('✅ Password updated successfully for:', user.email);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('❌ Update password error:', error);
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+};
+
 export const syncFirebaseUser = async (req, res) => {
   try {
     const { firebaseUser, idToken } = req.body;
@@ -96,15 +257,11 @@ export const syncFirebaseUser = async (req, res) => {
       return res.status(400).json({ error: 'Firebase user data and token required' });
     }
 
-    // console.log('🔄 Syncing Firebase user:', firebaseUser.email);
-
-    // Check if Firebase Admin can verify tokens
     const canVerifyFirebase = await canVerifyFirebaseTokens();
     
     if (!canVerifyFirebase) {
       console.log('⚠️ Firebase Admin not properly configured, creating user without token verification');
       
-      // Still create/update user based on provided data
       let user = await User.findOne({ 
         $or: [
           { firebaseUid: firebaseUser.uid },
@@ -113,7 +270,6 @@ export const syncFirebaseUser = async (req, res) => {
       });
       
       if (!user) {
-        // Create new user
         user = new User({
           email: firebaseUser.email,
           firebaseUid: firebaseUser.uid,
@@ -122,14 +278,11 @@ export const syncFirebaseUser = async (req, res) => {
           password: 'firebase-auth'
         });
         await user.save();
-        // console.log('✅ Created new Firebase user in MongoDB (no token verification):', user._id);
       } else {
-        // Update existing user
         user.firebaseUid = firebaseUser.uid;
         user.displayName = firebaseUser.displayName || user.displayName;
         user.photoURL = firebaseUser.photoURL || user.photoURL;
         await user.save();
-        // console.log('✅ Updated existing Firebase user (no token verification):', user._id);
       }
 
       return res.json({ 
@@ -143,7 +296,6 @@ export const syncFirebaseUser = async (req, res) => {
       });
     }
 
-    // Verify the Firebase token if possible
     let decodedToken;
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -153,7 +305,6 @@ export const syncFirebaseUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid Firebase token' });
     }
 
-    // Find or create user in MongoDB
     let user = await User.findOne({ 
       $or: [
         { firebaseUid: firebaseUser.uid },
@@ -162,7 +313,6 @@ export const syncFirebaseUser = async (req, res) => {
     });
     
     if (!user) {
-      // Create new user
       user = new User({
         email: firebaseUser.email,
         firebaseUid: firebaseUser.uid,
@@ -171,14 +321,11 @@ export const syncFirebaseUser = async (req, res) => {
         password: 'firebase-auth'
       });
       await user.save();
-      // console.log('✅ Created new Firebase user in MongoDB:', user._id);
     } else {
-      // Update existing user
       user.firebaseUid = firebaseUser.uid;
       user.displayName = firebaseUser.displayName || user.displayName;
       user.photoURL = firebaseUser.photoURL || user.photoURL;
       await user.save();
-      // console.log('✅ Updated existing Firebase user:', user._id);
     }
 
     res.json({ 
@@ -196,41 +343,6 @@ export const syncFirebaseUser = async (req, res) => {
   }
 };
 
-// export const updateUser = async (req, res) => {
-//   try {
-//     const { uid } = req.params;
-//     const updates = req.body;
-
-//     const existingUser = await User.findOne({ firebaseUid: uid });
-//     if (!existingUser) {
-//       console.log('❌ No user found with this UID');
-//       return res.status(404).json({ message: 'User not found in DB' });
-//     }
-    
-
-//     console.log('✅ Found user before update:', existingUser);
-
-//     const updatedUser = await User.findOneAndUpdate(
-//       { firebaseUid: uid },
-//       { $set: updates },
-//       { new: true }
-//     );
-
-//     if (!updatedUser) {
-//       return res.status(404).json({ message: 'User not found or no update applied' });
-//     }
-
-//     console.log('✅ After update:', updatedUser);
-//     res.status(200).json({ message: 'User updated successfully', user: updatedUser });
-//   } catch (error) {
-//     console.error('❌ Error updating user:', error);
-//     res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// };
-
-// PUT /api/users/:uid
-
-
 export const updateUser = async (req, res) => {
   const { uid } = req.params;
   const {
@@ -246,16 +358,12 @@ export const updateUser = async (req, res) => {
   } = req.body;
 
   try {
-    // ✅ 1. Update Firebase Auth (only displayName and email)
     const updatedFirebaseUser = await admin.auth().updateUser(uid, {
       displayName,
       email,
       photoURL
     });
 
-    // console.log('✅ Firebase user updated:', updatedFirebaseUser.email);
-
-    // ✅ 2. Update MongoDB user with matching Firebase UID
     const updatedUser = await User.findOneAndUpdate(
       { firebaseUid: uid },
       {
@@ -276,8 +384,6 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found in MongoDB' });
     }
 
-    // console.log('✅ MongoDB user updated:', updatedUser.email);
-
     res.status(200).json({ 
       message: 'User updated successfully', 
       user: updatedUser 
@@ -287,12 +393,11 @@ export const updateUser = async (req, res) => {
     res.status(500).json({ error: 'Failed to update user' });
   }
 };
-// GET /api/users/:uid
+
 export const getUserProfile = async (req, res) => {
   const { uid } = req.params;
 
   try {
-    // 🔐 Verify the user exists in Firebase
     let firebaseUser;
     try {
       firebaseUser = await admin.auth().getUser(uid);
@@ -301,14 +406,12 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found in Firebase' });
     }
 
-    // 📦 Fetch user from MongoDB
     const user = await User.findOne({ firebaseUid: uid });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found in database' });
     }
 
-    // 📤 Respond with user profile
     res.status(200).json({
       user: {
         _id: user._id,
@@ -328,4 +431,3 @@ export const getUserProfile = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-

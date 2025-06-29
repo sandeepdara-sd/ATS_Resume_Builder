@@ -5,12 +5,16 @@ import CssBaseline from '@mui/material/CssBaseline';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import UploadResume from './pages/UploadResume';
 import CreateResume from './pages/CreateResume';
 import ResumeBuilder from './pages/ResumeBuilder';
 import ScoreResume from './pages/ScoreResume';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import FeedbackWidget from './components/FeedbackWidget';
 import { useAuth } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -18,8 +22,6 @@ import theme from './theme';
 
 function App() {
   const { user, loading } = useAuth();
-
-  // console.log('App render - User:', user, 'Loading:', loading);
 
   if (loading) {
     return (
@@ -35,6 +37,7 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
+          {/* Public Routes */}
           <Route 
             path="/" 
             element={
@@ -53,42 +56,20 @@ function App() {
               user ? <Navigate to="/dashboard" replace /> : <SignupPage />
             } 
           />
-          {/* <Route 
-            path="/dashboard" 
+          <Route 
+            path="/forgot-password" 
             element={
-              user ? <Dashboard /> : <Navigate to="/login" replace />
+              user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />
             } 
           />
           <Route 
-            path="/profile" 
+            path="/reset-password" 
             element={
-              user ? <Profile /> : <Navigate to="/login" replace />
+              user ? <Navigate to="/dashboard" replace /> : <ResetPassword />
             } 
           />
-          <Route 
-            path="/upload-resume" 
-            element={
-              user ? <UploadResume /> : <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/create-resume" 
-            element={
-              user ? <CreateResume /> : <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/resume-builder/:type" 
-            element={
-              user ? <ResumeBuilder /> : <Navigate to="/login" replace />
-            } 
-          />
-          <Route 
-            path="/score-resume" 
-            element={
-              user ? <ScoreResume /> : <Navigate to="/login" replace />
-            } 
-          /> */}
+
+          {/* Protected User Routes */}
           <Route 
             path="/dashboard" 
             element={user ? <Dashboard /> : <Navigate to="/" replace />} 
@@ -113,6 +94,10 @@ function App() {
             path="/score-resume" 
             element={user ? <ScoreResume /> : <Navigate to="/" replace />} 
           />
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
           {/* Catch all route */}
           <Route 

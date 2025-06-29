@@ -258,7 +258,7 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  sx={{ mb: 4 }}
+                  sx={{ mb: 2 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -277,6 +277,24 @@ function LoginPage() {
                     ),
                   }}
                 />
+
+                <Box sx={{ textAlign: 'right', mb: 3 }}>
+                  <MuiLink
+                    component={Link}
+                    to="/forgot-password"
+                    sx={{
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Forgot password?
+                  </MuiLink>
+                </Box>
 
                 <Button
                   type="submit"
