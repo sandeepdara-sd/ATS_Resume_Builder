@@ -28,7 +28,6 @@ export const generateResumeHTML = (resumeData) => {
           margin: 0 auto;
           background-color: white;
           padding: 32px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
           display: flex;
           flex-direction: column;
         }
@@ -238,7 +237,7 @@ export const generateResumeHTML = (resumeData) => {
           </div>
         </div>
 
-        <div class="divider"></div>
+       
 
         <div class="content">
           ${resumeData.summary ? `
