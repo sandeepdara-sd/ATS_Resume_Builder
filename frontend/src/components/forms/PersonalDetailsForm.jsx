@@ -7,7 +7,7 @@ import {
 import { useState, useEffect } from 'react';
 
 function PersonalDetailsForm({ data, onChange }) {
-  const [formData, setFormData] = useState(data || {
+  const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
@@ -17,26 +17,32 @@ function PersonalDetailsForm({ data, onChange }) {
     website: ''
   });
 
-  // Update formData only when new data is passed
+  // Initialize formData only once when component mounts or when data prop changes significantly
   useEffect(() => {
-    if (data) {
-      setFormData(data);
+    if (data && Object.keys(data).length > 0) {
+      setFormData(prev => ({
+        fullName: data.fullName || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        location: data.location || '',
+        linkedin: data.linkedin || '',
+        github: data.github || '',
+        website: data.website || ''
+      }));
     }
-  }, [data]);
-
-  // Notify parent only when formData has actual content
-  useEffect(() => {
-    const hasData = Object.values(formData).some((val) => val !== '');
-    if (hasData) {
-      onChange(formData);
-    }
-  }, [formData]);
+  }, []); // Remove data dependency to prevent unnecessary updates
 
   const handleChange = (field) => (event) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value
-    }));
+    const newValue = event.target.value;
+    const updatedFormData = {
+      ...formData,
+      [field]: newValue
+    };
+    
+    setFormData(updatedFormData);
+    
+    // Call onChange immediately with the updated data
+    onChange(updatedFormData);
   };
 
   return (
