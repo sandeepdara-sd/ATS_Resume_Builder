@@ -140,67 +140,11 @@ export const forgotPassword = async (req, res) => {
         from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
         to: email,
         subject: 'Password Reset Request - ATS Resume Builder',
-       html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #667eea; margin-bottom: 10px;">ATS Resume Builder</h1>
-              <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
-            </div>
-            
-            <div style="background: #f8fafc; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
-              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
-                Hello <strong>${user.displayName || 'User'}</strong>,
-              </p>
-              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
-                You requested a password reset for your ATS Resume Builder account.
-              </p>
-              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 30px;">
-                Click the button below to reset your password:
-              </p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl}" 
-                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                          color: white; 
-                          padding: 15px 30px; 
-                          text-decoration: none; 
-                          border-radius: 8px; 
-                          display: inline-block;
-                          font-weight: 600;
-                          font-size: 16px;">
-                  Reset Password
-                </a>
-              </div>
-              
-              <p style="font-size: 14px; line-height: 1.6; color: #666; margin-bottom: 10px;">
-                Or copy and paste this link in your browser:
-              </p>
-              <p style="word-break: break-all; color: #667eea; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px;">
-                ${resetUrl}
-              </p>
-            </div>
-            
-            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-              <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
-              </p>
-            </div>
-            
-            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-              If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
-            </p>
-            
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            
-            <div style="text-align: center;">
-              <p style="color: #666; font-size: 12px; margin: 0;">
-                ATS Resume Builder Team<br>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color: #667eea;">
-                  Visit our website
-                </a>
-              </p>
-            </div>
-          </div>
+        html: `
+          <p>Hello ${user.displayName || 'User'},</p>
+          <p>Click below to reset your password:</p>
+          <a href="${resetUrl}">${resetUrl}</a>
+          <p>This link will expire in 1 hour.</p>
         `
       };
 
