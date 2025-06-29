@@ -32,7 +32,10 @@
     "sweetalert": "^2.1.2",
     "sweetalert2": "^11.12.1",
     "uuid": "^9.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "recharts": "^2.8.0",
+    "react-countup": "^6.4.2",
+    "react-circular-progressbar": "^2.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
