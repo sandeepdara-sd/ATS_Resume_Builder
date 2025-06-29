@@ -35,7 +35,11 @@ setTimeout(async () => {
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://sd-resume-builder.vercel.app', 'https://your-admin-domain.com']
+    ? [
+        'https://sd-resume-builder.vercel.app', 
+        'https://your-vercel-app.vercel.app',
+        process.env.FRONTEND_URL
+      ].filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true
 }));
@@ -75,6 +79,7 @@ app.get('/api/health', async (req, res) => {
     status: 'OK', 
     message: 'ATS Resume Builder Server with Admin Dashboard is running',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
     services: {
       mongodb: mongoStatus ? 'Connected' : 'Disconnected',
       firebase: 'Initialized',
@@ -90,6 +95,7 @@ app.get('/api', (req, res) => {
   res.json({
     message: 'ATS Resume Builder API with Admin Dashboard',
     version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       auth: [
         'POST /api/register',
@@ -198,14 +204,17 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
-const server = app.listen(5000, () => {
-  console.log('✅ Server with Admin Dashboard is ready to accept connections');
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () => {
+  console.log(`✅ Server with Admin Dashboard is ready on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
 
 // Handle server errors
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Port 5000 is already in use`);
+    console.error(`❌ Port ${PORT} is already in use`);
     process.exit(1);
   } else {
     console.error('❌ Server error:', error);
