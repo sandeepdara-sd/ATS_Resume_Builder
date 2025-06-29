@@ -31,28 +31,28 @@ await connectDB();
 const ensureAdminExists = async () => {
   try {
     console.log('🔍 Checking if admin user exists...');
-    
+
+    // Get admin credentials from environment variables
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminName = process.env.ADMIN_NAME;
+
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
-    
+    const existingAdmin = await Admin.findOne({ email: adminEmail });
+
     if (existingAdmin) {
       console.log('✅ Admin user already exists');
-      console.log('📧 Email: admin@resumebuilder.com');
+      console.log('📧 Email:', adminEmail);
       console.log('🔐 Use your existing password to login');
       return;
     }
 
     console.log('🔄 Creating initial admin user...');
-    
-    // Get admin credentials from environment variables or use defaults
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@resumebuilder.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    const adminName = process.env.ADMIN_NAME || 'Super Admin';
-    
+
     // Create admin user
     const admin = new Admin({
       email: adminEmail,
-      password: adminPassword, // This will be hashed by the pre-save middleware
+      password: adminPassword, // Will be hashed by pre-save middleware
       name: adminName,
       role: 'super-admin',
       permissions: ['users', 'resumes', 'feedback', 'analytics', 'settings'],
@@ -69,10 +69,10 @@ const ensureAdminExists = async () => {
     
   } catch (error) {
     console.error('❌ Error ensuring admin exists:', error);
-    // Don't exit the process, just log the error
-    // The server should still start even if admin creation fails
+    // Do not exit process; continue running
   }
 };
+
 
 // Test MongoDB connection and create admin if needed
 setTimeout(async () => {
