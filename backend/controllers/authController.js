@@ -139,7 +139,7 @@ export const forgotPassword = async (req, res) => {
 
     try {
       // Send email
-      const transporter = createEmailTransporter();
+      const transporter = createEmailTransport();
       const mailOptions = {
         from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
         to: email,
