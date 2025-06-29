@@ -90,6 +90,7 @@ import {
   MonetizationOn,
   WorkspacePremium,
   EmojiEvents,
+  Person,
   LocalFireDepartment
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
