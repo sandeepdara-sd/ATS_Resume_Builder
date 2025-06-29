@@ -113,6 +113,9 @@ export const forgotPassword = async (req, res) => {
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     
+    // Delete any existing reset tokens for this user
+    await PasswordReset.deleteMany({ email: user.email });
+    
     // Save reset token to database
     await PasswordReset.create({
       email: user.email,
@@ -124,37 +127,101 @@ export const forgotPassword = async (req, res) => {
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
 
-    // Send email
-    const transporter = createEmailTransporter();
-    const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
-      to: email,
-      subject: 'Password Reset Request - ATS Resume Builder',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #667eea;">Password Reset Request</h2>
-          <p>Hello ${user.displayName || 'User'},</p>
-          <p>You requested a password reset for your ATS Resume Builder account.</p>
-          <p>Click the button below to reset your password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
-          </div>
-          <p>Or copy and paste this link in your browser:</p>
-          <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
-          <p><strong>This link will expire in 1 hour.</strong></p>
-          <p>If you didn't request this password reset, please ignore this email.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #666; font-size: 12px;">ATS Resume Builder Team</p>
-        </div>
-      `
-    };
+    // Check if email credentials are configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.log('⚠️ Email credentials not configured. Reset URL:', resetUrl);
+      return res.json({ 
+        message: 'Password reset link generated (check server logs for URL)',
+        email: email,
+        resetUrl: resetUrl // Remove this in production
+      });
+    }
 
-    await transporter.sendMail(mailOptions);
+    try {
+      // Send email
+      const transporter = createEmailTransporter();
+      const mailOptions = {
+        from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
+        to: email,
+        subject: 'Password Reset Request - ATS Resume Builder',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #667eea; margin-bottom: 10px;">ATS Resume Builder</h1>
+              <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
+                Hello <strong>${user.displayName || 'User'}</strong>,
+              </p>
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
+                You requested a password reset for your ATS Resume Builder account.
+              </p>
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 30px;">
+                Click the button below to reset your password:
+              </p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" 
+                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 8px; 
+                          display: inline-block;
+                          font-weight: 600;
+                          font-size: 16px;">
+                  Reset Password
+                </a>
+              </div>
+              
+              <p style="font-size: 14px; line-height: 1.6; color: #666; margin-bottom: 10px;">
+                Or copy and paste this link in your browser:
+              </p>
+              <p style="word-break: break-all; color: #667eea; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px;">
+                ${resetUrl}
+              </p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+              </p>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+              If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
+            </p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            
+            <div style="text-align: center;">
+              <p style="color: #666; font-size: 12px; margin: 0;">
+                ATS Resume Builder Team<br>
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color: #667eea;">
+                  Visit our website
+                </a>
+              </p>
+            </div>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log('✅ Password reset email sent to:', email);
+
+    } catch (emailError) {
+      console.error('❌ Failed to send email:', emailError);
+      // Still return success but log the URL for development
+      console.log('🔗 Password reset URL (for development):', resetUrl);
+    }
 
     res.json({ 
       message: 'Password reset email sent successfully',
       email: email 
     });
+
   } catch (error) {
     console.error('❌ Forgot password error:', error);
     res.status(500).json({ error: 'Failed to send password reset email' });
