@@ -1,9 +1,10 @@
-// Updated server.js CORS configuration
+// Updated server.js with improved CORS configuration
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB, { testConnection } from './config/database.js';
 import { initializeFirebase } from './config/firebase.js';
+import mongoose from 'mongoose';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -33,35 +34,50 @@ setTimeout(async () => {
   }
 }, 2000);
 
-// CORS Configuration - More permissive for development
+// Define allowed origins
+const getAllowedOrigins = () => {
+  const prodOrigins = [
+    'https://sd-resume-builder.vercel.app',
+    'https://ats-resume-builder-1.onrender.com',
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+
+  const devOrigins = [
+    'http://localhost:3000', 
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'https://sd-resume-builder.vercel.app' // Allow production frontend in development
+  ];
+
+  return process.env.NODE_ENV === 'production' ? prodOrigins : [...devOrigins, ...prodOrigins];
+};
+
+// CORS Configuration - Simplified and more reliable
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    console.log(`🔍 CORS check for origin: ${origin || 'No Origin'}`);
     
-    const allowedOrigins = process.env.NODE_ENV === 'production' 
-      ? [
-          'https://sd-resume-builder.vercel.app',
-          'https://ats-resume-builder-1.onrender.com',
-          process.env.FRONTEND_URL
-        ].filter(Boolean)
-      : [
-          'http://localhost:3000', 
-          'http://localhost:3001',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001',
-          'https://sd-resume-builder.vercel.app' // Allow production frontend in development
-        ];
-
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      console.log('✅ Allowing request with no origin');
+      return callback(null, true);
+    }
+    
+    const allowedOrigins = getAllowedOrigins();
+    console.log('📋 Allowed origins:', allowedOrigins);
+    
     if (allowedOrigins.includes(origin)) {
+      console.log(`✅ Origin ${origin} is allowed`);
       callback(null, true);
     } else {
-      console.log(`❌ CORS blocked origin: ${origin}`);
-      // In development, allow all origins
+      console.log(`❌ Origin ${origin} is not allowed`);
+      // In development, be more permissive
       if (process.env.NODE_ENV !== 'production') {
+        console.log('🔓 Development mode: allowing anyway');
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`CORS: Origin ${origin} not allowed`));
       }
     }
   },
@@ -69,108 +85,133 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Origin',
-    'X-Requested-With',
+    'X-Requested-With', 
     'Content-Type',
     'Accept',
     'Authorization',
     'Cache-Control',
-    'X-Access-Token'
+    'Pragma',
+    'Expires',
+    'X-Access-Token',
+    'Access-Control-Allow-Origin'
   ],
-  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  exposedHeaders: ['Content-Length', 'Access-Control-Allow-Origin'],
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200 // Changed from 204 to 200 for better compatibility
 };
 
+// Apply CORS middleware early
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// Request logging middleware
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`${timestamp} - ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'No Origin'}`);
-  
-  if (req.method === 'POST' && req.body && Object.keys(req.body).length > 0) {
-    const logBody = { ...req.body };
-    if (logBody.password) logBody.password = '***';
-    if (logBody.idToken) logBody.idToken = '***';
-  }
-  
-  next();
-});
-
-// Add explicit CORS headers middleware (additional safety)
+// Additional CORS middleware for extra safety
 app.use((req, res, next) => {
   const origin = req.get('Origin');
-  const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [
-        'https://sd-resume-builder.vercel.app',
-        'https://ats-resume-builder-1.onrender.com',
-        process.env.FRONTEND_URL
-      ].filter(Boolean)
-    : [
-        'http://localhost:3000', 
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
-        'https://sd-resume-builder.vercel.app'
-      ];
-
-  if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-    res.header('Access-Control-Allow-Origin', origin || '*');
+  const allowedOrigins = getAllowedOrigins();
+  
+  console.log(`🔍 Additional CORS middleware - Origin: ${origin}, Method: ${req.method}`);
+  
+  // Set CORS headers explicitly
+  if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production')) {
+    res.header('Access-Control-Allow-Origin', origin);
+    console.log(`✅ Set Access-Control-Allow-Origin: ${origin}`);
+  } else if (!origin) {
+    res.header('Access-Control-Allow-Origin', '*');
+    console.log('✅ Set Access-Control-Allow-Origin: *');
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,X-Access-Token');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,Pragma,Expires,X-Access-Token');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
   
-  // Handle preflight requests
+  // Handle preflight OPTIONS requests immediately
   if (req.method === 'OPTIONS') {
-    res.status(204).send();
-    return;
+    console.log('✅ Handling OPTIONS preflight request');
+    return res.status(200).json({
+      status: 'OK',
+      methods: 'GET,PUT,POST,DELETE,OPTIONS,PATCH',
+      headers: 'Origin,X-Requested-With,Content-Type,Accept,Authorization'
+    });
   }
   
   next();
 });
 
-// Routes
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Enhanced request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const origin = req.get('Origin') || 'No Origin';
+  const userAgent = req.get('User-Agent') || 'No User-Agent';
+  
+  console.log(`📊 ${timestamp} - ${req.method} ${req.path}`);
+  console.log(`   Origin: ${origin}`);
+  console.log(`   User-Agent: ${userAgent.substring(0, 50)}...`);
+  
+  if (req.method === 'POST' && req.body && Object.keys(req.body).length > 0) {
+    const logBody = { ...req.body };
+    // Hide sensitive data in logs
+    if (logBody.password) logBody.password = '***';
+    if (logBody.idToken) logBody.idToken = '***';
+    if (logBody.token) logBody.token = '***';
+    console.log(`   Body keys: ${Object.keys(req.body).join(', ')}`);
+  }
+  
+  next();
+});
+
+// Routes - Make sure these are mounted correctly
 app.use('/api', authRoutes);
 app.use('/api', resumeRoutes);
 app.use('/api', aiRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.use("/",(req,res)=>{
-  res.send("Welcome to ATS Resume Builder with Admin Dashboard")
-})
+// Root route
+app.get("/", (req, res) => {
+  res.json({
+    message: "Welcome to ATS Resume Builder with Admin Dashboard",
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    version: "2.0.0"
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
-  const mongoStatus = await testConnection();
-  
-  res.json({ 
-    status: 'OK', 
-    message: 'ATS Resume Builder Server with Admin Dashboard is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    services: {
-      mongodb: mongoStatus ? 'Connected' : 'Disconnected',
-      firebase: 'Initialized',
-      ai: 'Available',
-      admin: 'Available',
-      email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'
-    },
-    version: '2.0.0',
-    cors: {
-      allowedOrigins: process.env.NODE_ENV === 'production' 
-        ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
-        : ['http://localhost:3000', 'http://localhost:3001', 'https://sd-resume-builder.vercel.app']
-    }
-  });
+  try {
+    const mongoStatus = await testConnection();
+    
+    res.json({ 
+      status: 'OK', 
+      message: 'ATS Resume Builder Server with Admin Dashboard is running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        mongodb: mongoStatus ? 'Connected' : 'Disconnected',
+        firebase: 'Initialized',
+        ai: 'Available',
+        admin: 'Available',
+        email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'
+      },
+      version: '2.0.0',
+      cors: {
+        allowedOrigins: getAllowedOrigins(),
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
+      }
+    });
+  } catch (error) {
+    console.error('❌ Health check error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Health check failed',
+      error: error.message
+    });
+  }
 });
 
 // API documentation endpoint
@@ -179,6 +220,10 @@ app.get('/api', (req, res) => {
     message: 'ATS Resume Builder API with Admin Dashboard',
     version: '2.0.0',
     environment: process.env.NODE_ENV || 'development',
+    cors: {
+      allowedOrigins: getAllowedOrigins(),
+      credentials: true
+    },
     endpoints: {
       auth: [
         'POST /api/register',
@@ -213,9 +258,37 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Error handling middleware
+// Catch-all for API routes to help debug missing routes
+app.use('/api/*', (req, res) => {
+  console.log(`❌ API route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    method: req.method,
+    path: req.originalUrl,
+    message: 'Check the API documentation at /api',
+    availableRoutes: [
+      '/api/health',
+      '/api/register',
+      '/api/login',
+      '/api/forgot-password',
+      '/api/reset-password'
+    ]
+  });
+});
+
+// Global error handling middleware
 app.use((error, req, res, next) => {
-  console.error('❌ Server Error:', error);
+  console.error('❌ Global Error Handler:', error);
+  
+  // CORS error
+  if (error.message && error.message.includes('CORS')) {
+    return res.status(403).json({ 
+      error: 'CORS Error', 
+      message: 'Cross-origin request blocked',
+      origin: req.get('Origin'),
+      allowedOrigins: getAllowedOrigins()
+    });
+  }
   
   if (error.name === 'ValidationError') {
     return res.status(400).json({ 
@@ -246,18 +319,19 @@ app.use((error, req, res, next) => {
   
   res.status(500).json({ 
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
+    timestamp: new Date().toISOString()
   });
 });
 
-// 404 handler
+// 404 handler for all other routes
 app.use('*', (req, res) => {
   console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     error: 'Route not found',
     method: req.method,
     path: req.originalUrl,
-    availableRoutes: '/api'
+    suggestion: 'Try /api for API documentation or /api/health for health check'
   });
 });
 
@@ -278,6 +352,7 @@ const gracefulShutdown = (signal) => {
     }
   });
   
+  // Force shutdown after 10 seconds
   setTimeout(() => {
     console.error('❌ Could not close connections in time, forcefully shutting down');
     process.exit(1);
@@ -288,17 +363,17 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
-
-const PORT = 5000;
-const server = app.listen(PORT, () => {
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 ================================================`);
   console.log(`✅ Server with Admin Dashboard is ready on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔒 CORS allowed origins:`, process.env.NODE_ENV === 'production' 
-    ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:3001', 'https://sd-resume-builder.vercel.app']
-  );
-  console.log(`📧 Email service: ${process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'}`);
+  console.log(`📚 API docs: http://localhost:${PORT}/api`);
+  console.log(`🔒 CORS allowed origins:`);
+  getAllowedOrigins().forEach(origin => console.log(`   - ${origin}`));
+  console.log(`📧 Email service: ${process.env.EMAIL_USER && process.env.EMAIL_PASS ? '✅ Configured' : '❌ Not Configured'}`);
+  console.log(`================================================\n`);
 });
 
 // Handle server errors
@@ -309,4 +384,15 @@ server.on('error', (error) => {
   } else {
     console.error('❌ Server error:', error);
   }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
