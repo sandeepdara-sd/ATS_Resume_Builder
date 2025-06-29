@@ -13,9 +13,7 @@ This project empowers users to create professional, ATS-friendly resumes tailore
 
 **Admin Panel:** [https://sd-resume-builder.vercel.app/admin/login](https://sd-resume-builder.vercel.app/admin/login)
 
-**Admin Credentials:**
-- **Email:** `admin@resumebuilder.com`
-- **Password:** `admin123`
+
 
 **To create admin user locally:**
 ```bash
