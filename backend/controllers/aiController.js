@@ -9,16 +9,16 @@ export const generateSummary = async (req, res) => {
     }
 
     const prompt = type === 'fresher' 
-      ? `Generate a first-person professional summary (starting with "I am...") for a fresh graduate/entry-level candidate with the following details:
+      ? `Generate a professional summary for a fresh graduate/entry-level candidate with the following details:
          Name: ${personalDetails.fullName}
          Email: ${personalDetails.email || 'Not provided'}
-
-         The summary should be 2-3 sentences highlighting my potential, education background, and career objectives. Make it ATS-friendly and professional. Return only the summary text without any additional formatting.`
-     : `Generate a first-person executive summary (starting with "I am...") for an experienced professional with the following details:
-        Name: ${personalDetails.fullName}
-        Email: ${personalDetails.email || 'Not provided'}
-
-        The summary should be 2-3 sentences highlighting my experience, expertise, and value proposition. Make it ATS-friendly and impactful. Return only the summary text without any additional formatting.`;
+         
+         The summary should be 2-3 sentences highlighting their potential, education background, and career objectives. Make sure you generate the summary as you are the user. Make it ATS-friendly and professional. Return only the summary text without any additional formatting.`
+      : `Generate an executive summary for an experienced professional with the following details:
+         Name: ${personalDetails.fullName}
+         Email: ${personalDetails.email || 'Not provided'}
+         
+         The summary should be 2-3 sentences highlighting their experience, expertise, and value proposition. Make sure you generate the summary as you are the user. Make it ATS-friendly and impactful. Return only the summary text without any additional formatting.`;
 
     // console.log('Generating summary with prompt:', prompt);
 
