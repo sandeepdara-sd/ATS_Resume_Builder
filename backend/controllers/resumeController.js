@@ -322,93 +322,36 @@ export const deleteResume = async (req, res) => {
   }
 };
 
-// export const downloadResume = async (req, res) => {
-//   try {
-//     const resumeData = req.body;
-    
-//     console.log('📥 Generating resume download...');
-
-//     // Validate resume data
-//     if (!resumeData || !resumeData.personalDetails) {
-//       return res.status(400).json({ error: 'Resume data is required' });
-//     }
-
-//     // Create HTML content for the resume
-//     const htmlContent = generateResumeHTML(resumeData);
-    
-//     // Return HTML that can be converted to PDF on client side
-//     res.setHeader('Content-Type', 'text/html');
-//     res.setHeader('Content-Disposition', `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.html"`);
-//     res.send(htmlContent);
-    
-//     console.log('✅ Resume download generated successfully');
-    
-//   } catch (error) {
-//     console.error('❌ Error generating resume:', error);
-//     res.status(500).json({ error: 'Failed to generate resume: ' + error.message });
-//   }
-// };
-
-// export const downloadResume = async (req, res) => {
-//   try {
-//     const resumeData = req.body;
-
-//     console.log('📥 Generating resume download...');
-
-//     if (!resumeData || !resumeData.personalDetails) {
-//       return res.status(400).json({ error: 'Resume data is required' });
-//     }
-
-//     const htmlContent = generateResumeHTML(resumeData);
-
-//     const browser = await puppeteer.launch({
-//       headless: true,
-//       args: ['--no-sandbox', '--disable-setuid-sandbox'],
-//       executablePath:
-//         process.env.NODE_ENV === 'production'
-//           ? (await import('puppeteer')).executablePath()
-//           : undefined,
-//     });
-
-//     const page = await browser.newPage();
-//     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-
-//     const pdfBuffer = await page.pdf({
-//       format: 'A4',
-//       printBackground: true,
-//     });
-
-//     await browser.close();
-
-//     res.setHeader('Content-Type', 'application/pdf');
-//     res.setHeader(
-//       'Content-Disposition',
-//       `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.pdf"`
-//     );
-//     res.end(pdfBuffer);
-
-//     console.log('✅ Resume PDF generated and sent successfully');
-//   } catch (error) {
-//     console.error('❌ Error generating resume:', error);
-//     res.status(500).json({ error: 'Failed to generate resume: ' + error.message });
-//   }
-// };
 export const downloadResume = async (req, res) => {
   try {
     const resumeData = req.body;
 
-    console.log('📥 Generating resume download (HTML-PDF)...');
+    console.log('📥 Generating resume download with dynamic height...');
 
     if (!resumeData || !resumeData.personalDetails) {
       return res.status(400).json({ error: 'Resume data is required' });
     }
 
-    // 1. Generate HTML content
+    // 1. Generate HTML content with dynamic sizing
     const htmlContent = generateResumeHTML(resumeData);
 
-    // 2. Prepare PDF conversion
+    // 2. Prepare PDF conversion with dynamic height options
     const file = { content: htmlContent };
-    const options = { format: 'A4', printBackground: true };
+    const options = { 
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '10mm',
+        bottom: '10mm',
+        left: '10mm',
+        right: '10mm'
+      },
+      // Enable content-based height adjustment
+      height: 'auto',
+      // Optimize for single page layout
+      preferCSSPageSize: true,
+      displayHeaderFooter: false
+    };
 
     // 3. Generate PDF buffer
     const pdfBuffer = await pdf.generatePdf(file, options);
@@ -421,7 +364,7 @@ export const downloadResume = async (req, res) => {
     );
     res.end(pdfBuffer);
 
-    console.log('✅ Resume PDF generated and sent (html-pdf-node)');
+    console.log('✅ Resume PDF generated with dynamic height optimization');
   } catch (error) {
     console.error('❌ Error generating resume PDF:', error);
     res.status(500).json({ error: 'Failed to generate resume PDF' });

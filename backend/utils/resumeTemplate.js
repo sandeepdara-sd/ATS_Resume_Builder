@@ -27,8 +27,51 @@ export const generateResumeHTML = (resumeData) => {
   }
 };
 
+// Helper function to calculate dynamic spacing based on content
+function calculateDynamicSpacing(resumeData) {
+  let contentSections = 0;
+  
+  if (resumeData.summary) contentSections++;
+  if (resumeData.experience?.length > 0) contentSections++;
+  if (resumeData.projects?.length > 0) contentSections++;
+  if (resumeData.education?.length > 0) contentSections++;
+  if (resumeData.skills?.length > 0) contentSections++;
+  if (resumeData.achievements?.length > 0) contentSections++;
+  if (resumeData.hobbies?.length > 0) contentSections++;
+  
+  // Calculate dynamic spacing based on number of sections
+  const baseSpacing = contentSections <= 4 ? 24 : contentSections <= 6 ? 18 : 12;
+  const itemSpacing = contentSections <= 4 ? 16 : contentSections <= 6 ? 12 : 8;
+  
+  return { baseSpacing, itemSpacing };
+}
+
+// Helper function to get dynamic font sizes
+function getDynamicFontSizes(resumeData) {
+  let totalItems = 0;
+  
+  if (resumeData.experience) totalItems += resumeData.experience.length;
+  if (resumeData.projects) totalItems += resumeData.projects.length;
+  if (resumeData.education) totalItems += resumeData.education.length;
+  if (resumeData.achievements) totalItems += resumeData.achievements.length;
+  
+  // Adjust font sizes based on content density
+  const isContentHeavy = totalItems > 8;
+  
+  return {
+    nameSize: isContentHeavy ? '2rem' : '2.2rem',
+    sectionTitleSize: isContentHeavy ? '1rem' : '1.1rem',
+    itemTitleSize: isContentHeavy ? '0.9rem' : '1rem',
+    bodySize: isContentHeavy ? '0.8rem' : '0.85rem',
+    smallSize: isContentHeavy ? '0.75rem' : '0.8rem'
+  };
+}
+
 // Modern Professional Template
 function generateModernProfessionalHTML(resumeData, formatDate) {
+  const spacing = calculateDynamicSpacing(resumeData);
+  const fonts = getDynamicFontSizes(resumeData);
+  
   return `
   <!DOCTYPE html>
   <html>
@@ -41,41 +84,43 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
           padding: 0;
           background-color: white;
           color: #2d3748;
-          line-height: 1.6;
+          line-height: 1.4;
         }
         
         .container {
           width: 100%;
-          max-width: 794px;
+          max-width: 210mm;
           margin: 0 auto;
           background-color: white;
-          padding: 20mm;
+          padding: 15mm;
+          box-sizing: border-box;
+          min-height: auto;
           display: flex;
           flex-direction: column;
-          box-sizing: border-box;
         }
 
         .header {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: ${spacing.baseSpacing}px;
         }
 
         .name {
-          font-size: 2.2rem;
+          font-size: ${fonts.nameSize};
           font-weight: 700;
           color: #1a202c;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           margin-top: 0;
           letter-spacing: -0.5px;
+          line-height: 1.1;
         }
 
         .contact-info {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 16px;
-          margin-bottom: 12px;
-          font-size: 0.9rem;
+          gap: 12px;
+          margin-bottom: 8px;
+          font-size: ${fonts.smallSize};
           color: #4a5568;
         }
 
@@ -83,20 +128,20 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 16px;
-          font-size: 0.85rem;
+          gap: 12px;
+          font-size: ${fonts.smallSize};
           color: #3182ce;
         }
 
         .divider {
           height: 1px;
           background-color: #e2e8f0;
-          margin: 24px 0;
+          margin: ${spacing.itemSpacing}px 0;
           border-width: 1px;
         }
 
         .section {
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.baseSpacing}px;
         }
 
         .section:last-child {
@@ -104,62 +149,70 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
         }
 
         .section-title {
-          font-size: 1.1rem;
+          font-size: ${fonts.sectionTitleSize};
           font-weight: 600;
           color: #2d3748;
-          margin-bottom: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
           margin-top: 0;
           text-transform: uppercase;
           letter-spacing: 1px;
+          line-height: 1.2;
         }
 
         .summary-text {
-          font-size: 0.9rem;
-          line-height: 1.7;
+          font-size: ${fonts.bodySize};
+          line-height: 1.5;
           color: #4a5568;
         }
 
         .item {
-          margin-bottom: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
+        }
+
+        .item:last-child {
+          margin-bottom: 0;
         }
 
         .item-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-title {
-          font-size: 1rem;
+          font-size: ${fonts.itemTitleSize};
           font-weight: 600;
           color: #2d3748;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
+          line-height: 1.2;
         }
 
         .item-subtitle {
-          font-size: 0.9rem;
+          font-size: ${fonts.bodySize};
           font-weight: 500;
           color: #3182ce;
           margin: 0;
+          line-height: 1.2;
         }
 
         .item-date {
-          font-size: 0.85rem;
+          font-size: ${fonts.smallSize};
           color: #718096;
           white-space: nowrap;
           font-weight: 500;
+          line-height: 1.2;
         }
 
         .item-location {
-          font-size: 0.85rem;
+          font-size: ${fonts.smallSize};
           color: #718096;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-description {
-          font-size: 0.85rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #4a5568;
           white-space: pre-line;
         }
@@ -167,17 +220,18 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
         .skills-container {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
 
         .skill-chip {
           display: inline-block;
-          padding: 4px 12px;
+          padding: 3px 10px;
           border: 1px solid #e2e8f0;
           border-radius: 4px;
-          font-size: 0.8rem;
+          font-size: ${fonts.smallSize};
           color: #4a5568;
           background-color: #f7fafc;
+          line-height: 1.2;
         }
 
         @media print {
@@ -187,8 +241,9 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
           }
           .container {
             box-shadow: none;
-            padding: 15mm;
+            padding: 10mm;
             page-break-inside: avoid;
+            min-height: auto;
           }
           .section {
             page-break-inside: avoid;
@@ -268,7 +323,7 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
                   ${project.duration ? `<div class="item-date">${project.duration}</div>` : ''}
                 </div>
                 ${project.description ? `<div class="item-description">${project.description}</div>` : ''}
-                ${project.technologies ? `<div style="font-size: 0.8rem; color: #718096; margin-top: 4px;"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
+                ${project.technologies ? `<div style="font-size: ${fonts.smallSize}; color: #718096; margin-top: 3px;"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -289,7 +344,7 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
                   </div>
                 </div>
                 ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
-                ${edu.gpa ? `<div style="font-size: 0.85rem; color: #4a5568;"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
+                ${edu.gpa ? `<div style="font-size: ${fonts.bodySize}; color: #4a5568;"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -311,7 +366,7 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
         ${resumeData.hobbies && resumeData.hobbies.length > 0 ? `
           <div class="section">
             <h2 class="section-title">Hobbies & Interests</h2>
-            <div style="font-size: 0.85rem; line-height: 1.6; color: #4a5568;">
+            <div style="font-size: ${fonts.bodySize}; line-height: 1.4; color: #4a5568;">
               ${resumeData.hobbies.join(' • ')}
             </div>
           </div>
@@ -324,6 +379,9 @@ function generateModernProfessionalHTML(resumeData, formatDate) {
 
 // Classic Executive Template
 function generateClassicExecutiveHTML(resumeData, formatDate) {
+  const spacing = calculateDynamicSpacing(resumeData);
+  const fonts = getDynamicFontSizes(resumeData);
+  
   return `
   <!DOCTYPE html>
   <html>
@@ -336,42 +394,44 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
           padding: 0;
           background-color: white;
           color: #000000;
-          line-height: 1.5;
+          line-height: 1.3;
         }
         
         .container {
           width: 100%;
-          max-width: 794px;
+          max-width: 210mm;
           margin: 0 auto;
           background-color: white;
-          padding: 25mm;
+          padding: 15mm;
           box-sizing: border-box;
+          min-height: auto;
         }
 
         .header {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: ${spacing.baseSpacing}px;
           border-bottom: 2px solid #000;
-          padding-bottom: 20px;
+          padding-bottom: ${spacing.itemSpacing}px;
         }
 
         .name {
-          font-size: 2.5rem;
+          font-size: ${fonts.nameSize === '2rem' ? '2.2rem' : '2.5rem'};
           font-weight: bold;
           color: #000000;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           margin-top: 0;
           text-transform: uppercase;
           letter-spacing: 2px;
+          line-height: 1.1;
         }
 
         .contact-info {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 24px;
-          margin-bottom: 16px;
-          font-size: 1rem;
+          gap: 20px;
+          margin-bottom: 12px;
+          font-size: ${fonts.bodySize};
           color: #000000;
         }
 
@@ -379,85 +439,97 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 24px;
-          font-size: 0.9rem;
+          gap: 20px;
+          font-size: ${fonts.smallSize};
           color: #000000;
         }
 
         .section {
-          margin-bottom: 30px;
+          margin-bottom: ${spacing.baseSpacing}px;
+        }
+
+        .section:last-child {
+          margin-bottom: 0;
         }
 
         .section-title {
-          font-size: 1.3rem;
+          font-size: ${fonts.sectionTitleSize === '1rem' ? '1.2rem' : '1.3rem'};
           font-weight: bold;
           color: #000000;
-          margin-bottom: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
           margin-top: 0;
           text-transform: uppercase;
           border-bottom: 1px solid #000;
-          padding-bottom: 8px;
+          padding-bottom: 6px;
+          line-height: 1.2;
         }
 
         .summary-text {
-          font-size: 1rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #000000;
           text-align: justify;
         }
 
         .item {
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.itemSpacing}px;
+        }
+
+        .item:last-child {
+          margin-bottom: 0;
         }
 
         .item-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-title {
-          font-size: 1.1rem;
+          font-size: ${fonts.itemTitleSize};
           font-weight: bold;
           color: #000000;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
+          line-height: 1.2;
         }
 
         .item-subtitle {
-          font-size: 1rem;
+          font-size: ${fonts.bodySize};
           font-weight: bold;
           color: #000000;
           margin: 0;
           font-style: italic;
+          line-height: 1.2;
         }
 
         .item-date {
-          font-size: 1rem;
+          font-size: ${fonts.bodySize};
           color: #000000;
           white-space: nowrap;
           font-weight: bold;
           text-align: right;
+          line-height: 1.2;
         }
 
         .item-location {
-          font-size: 0.9rem;
+          font-size: ${fonts.smallSize};
           color: #000000;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-description {
-          font-size: 0.95rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #000000;
           white-space: pre-line;
           text-align: justify;
-          margin-top: 8px;
+          margin-top: 6px;
         }
 
         .skills-text {
-          font-size: 1rem;
-          line-height: 1.8;
+          font-size: ${fonts.bodySize};
+          line-height: 1.6;
           color: #000000;
         }
 
@@ -468,8 +540,9 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
           }
           .container {
             box-shadow: none;
-            padding: 20mm;
+            padding: 10mm;
             page-break-inside: avoid;
+            min-height: auto;
           }
           .section {
             page-break-inside: avoid;
@@ -541,7 +614,7 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
                   <div>
                     <h3 class="item-title">${edu.degree || ''}</h3>
                     <div class="item-subtitle">${edu.institution || ''}, ${edu.location || ''}</div>
-                    ${edu.gpa ? `<div style="font-size: 0.9rem; color: #000000;">GPA: ${edu.gpa}</div>` : ''}
+                    ${edu.gpa ? `<div style="font-size: ${fonts.smallSize}; color: #000000;">GPA: ${edu.gpa}</div>` : ''}
                   </div>
                   <div class="item-date">
                     ${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}
@@ -572,7 +645,7 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
               <div class="item">
                 <h3 class="item-title">${project.name || ''}</h3>
                 ${project.description ? `<div class="item-description">${project.description}</div>` : ''}
-                ${project.technologies ? `<div style="font-size: 0.9rem; color: #000000; margin-top: 4px;"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
+                ${project.technologies ? `<div style="font-size: ${fonts.smallSize}; color: #000000; margin-top: 3px;"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -585,6 +658,9 @@ function generateClassicExecutiveHTML(resumeData, formatDate) {
 
 // Tech Focused Template
 function generateTechFocusedHTML(resumeData, formatDate) {
+  const spacing = calculateDynamicSpacing(resumeData);
+  const fonts = getDynamicFontSizes(resumeData);
+  
   // Categorize skills for better organization
   const categorizeSkills = (skills) => {
     const categories = {
@@ -628,22 +704,23 @@ function generateTechFocusedHTML(resumeData, formatDate) {
           padding: 0;
           background-color: white;
           color: #2d3748;
-          line-height: 1.6;
+          line-height: 1.4;
         }
         
         .container {
           width: 100%;
-          max-width: 794px;
+          max-width: 210mm;
           margin: 0 auto;
           background-color: white;
-          padding: 20mm;
+          padding: 15mm;
           box-sizing: border-box;
+          min-height: auto;
         }
 
         .header {
-          margin-bottom: 30px;
+          margin-bottom: ${spacing.baseSpacing}px;
           position: relative;
-          padding-left: 20px;
+          padding-left: 16px;
         }
 
         .header::before {
@@ -658,18 +735,19 @@ function generateTechFocusedHTML(resumeData, formatDate) {
         }
 
         .name {
-          font-size: 2.2rem;
+          font-size: ${fonts.nameSize};
           font-weight: 700;
           color: #1a202c;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           margin-top: 0;
           font-family: "Inter", sans-serif;
+          line-height: 1.1;
         }
 
         .job-title {
           color: #00d9ff;
-          margin-bottom: 16px;
-          font-size: 1.1rem;
+          margin-bottom: 12px;
+          font-size: ${fonts.itemTitleSize};
           font-weight: 500;
           font-family: "Inter", sans-serif;
         }
@@ -677,61 +755,70 @@ function generateTechFocusedHTML(resumeData, formatDate) {
         .contact-info {
           display: flex;
           flex-wrap: wrap;
-          gap: 16px;
-          margin-bottom: 16px;
-          font-size: 0.9rem;
+          gap: 12px;
+          margin-bottom: 12px;
+          font-size: ${fonts.smallSize};
           color: #4a5568;
         }
 
         .contact-links {
           display: flex;
           flex-wrap: wrap;
-          gap: 16px;
-          font-size: 0.85rem;
+          gap: 12px;
+          font-size: ${fonts.smallSize};
           color: #00d9ff;
         }
 
         .section {
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.baseSpacing}px;
+        }
+
+        .section:last-child {
+          margin-bottom: 0;
         }
 
         .section-title {
-          font-size: 1.1rem;
+          font-size: ${fonts.sectionTitleSize};
           font-weight: 600;
           color: #1a202c;
-          margin-bottom: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
           margin-top: 0;
           font-family: "Inter", sans-serif;
           display: flex;
           align-items: center;
+          line-height: 1.2;
         }
 
         .section-title::before {
           content: '';
-          width: 20px;
+          width: 16px;
           height: 2px;
           background-color: #00d9ff;
-          margin-right: 12px;
+          margin-right: 10px;
         }
 
         .summary-box {
           background-color: #f7fafc;
           border: 1px solid #e2e8f0;
           border-radius: 4px;
-          padding: 16px;
+          padding: 12px;
           font-family: "Inter", sans-serif;
         }
 
         .summary-text {
-          font-size: 0.9rem;
-          line-height: 1.7;
+          font-size: ${fonts.bodySize};
+          line-height: 1.5;
           color: #4a5568;
         }
 
         .item {
-          margin-bottom: 20px;
+          margin-bottom: ${spacing.itemSpacing}px;
           position: relative;
-          padding-left: 20px;
+          padding-left: 16px;
+        }
+
+        .item:last-child {
+          margin-bottom: 0;
         }
 
         .item::before {
@@ -748,94 +835,99 @@ function generateTechFocusedHTML(resumeData, formatDate) {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-title {
-          font-size: 1rem;
+          font-size: ${fonts.itemTitleSize};
           font-weight: 600;
           color: #1a202c;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
           font-family: "Inter", sans-serif;
+          line-height: 1.2;
         }
 
         .item-subtitle {
-          font-size: 0.9rem;
+          font-size: ${fonts.bodySize};
           font-weight: 500;
           color: #00d9ff;
           margin: 0;
           font-family: "Inter", sans-serif;
+          line-height: 1.2;
         }
 
         .item-date {
           background-color: #00d9ff;
           color: white;
-          padding: 4px 12px;
+          padding: 3px 10px;
           border-radius: 4px;
-          font-size: 0.75rem;
+          font-size: ${fonts.smallSize};
           font-weight: 500;
           white-space: nowrap;
+          line-height: 1.2;
         }
 
         .item-location {
-          font-size: 0.85rem;
+          font-size: ${fonts.smallSize};
           color: #718096;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-description {
-          font-size: 0.85rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #4a5568;
           white-space: pre-line;
           font-family: "Inter", sans-serif;
         }
 
         .skill-category {
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .skill-category-title {
-          font-size: 0.9rem;
+          font-size: ${fonts.bodySize};
           font-weight: 600;
           color: #2d3748;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           font-family: "Inter", sans-serif;
         }
 
         .skills-container {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
 
         .skill-chip {
           display: inline-block;
-          padding: 4px 12px;
+          padding: 3px 10px;
           background-color: #00d9ff;
           color: white;
           border-radius: 4px;
-          font-size: 0.75rem;
+          font-size: ${fonts.smallSize};
           font-weight: 500;
           font-family: "Fira Code", monospace;
+          line-height: 1.2;
         }
 
         .tech-chips {
           display: flex;
           flex-wrap: wrap;
-          gap: 4px;
-          margin-bottom: 8px;
+          gap: 3px;
+          margin-bottom: 6px;
         }
 
         .tech-chip {
           display: inline-block;
-          padding: 2px 8px;
+          padding: 2px 6px;
           background-color: #f7fafc;
           border: 1px solid #e2e8f0;
           border-radius: 3px;
-          font-size: 0.7rem;
+          font-size: ${fonts.smallSize};
           color: #4a5568;
           font-family: "Fira Code", monospace;
+          line-height: 1.2;
         }
 
         @media print {
@@ -845,8 +937,9 @@ function generateTechFocusedHTML(resumeData, formatDate) {
           }
           .container {
             box-shadow: none;
-            padding: 15mm;
+            padding: 10mm;
             page-break-inside: avoid;
+            min-height: auto;
           }
           .section {
             page-break-inside: avoid;
@@ -929,7 +1022,7 @@ function generateTechFocusedHTML(resumeData, formatDate) {
               <div class="item">
                 <div class="item-header">
                   <h3 class="item-title">🚀 ${project.name || ''}</h3>
-                  ${project.duration ? `<div style="color: #718096; font-size: 0.8rem;">${project.duration}</div>` : ''}
+                  ${project.duration ? `<div style="color: #718096; font-size: ${fonts.smallSize};">${project.duration}</div>` : ''}
                 </div>
                 ${project.description ? `<div class="item-description">${project.description}</div>` : ''}
                 ${project.technologies ? `
@@ -937,7 +1030,7 @@ function generateTechFocusedHTML(resumeData, formatDate) {
                     ${project.technologies.split(',').map(tech => `<span class="tech-chip">${tech.trim()}</span>`).join('')}
                   </div>
                 ` : ''}
-                ${project.link ? `<div style="font-size: 0.8rem; color: #00d9ff;">🔗 ${project.link}</div>` : ''}
+                ${project.link ? `<div style="font-size: ${fonts.smallSize}; color: #00d9ff;">🔗 ${project.link}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -953,11 +1046,11 @@ function generateTechFocusedHTML(resumeData, formatDate) {
                     <h3 class="item-title">🎓 ${edu.degree || ''}</h3>
                     <div class="item-subtitle">${edu.institution || ''}</div>
                   </div>
-                  <div style="color: #718096; font-size: 0.8rem;">
+                  <div style="color: #718096; font-size: ${fonts.smallSize};">
                     ${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}
                   </div>
                 </div>
-                ${edu.gpa ? `<div style="font-size: 0.85rem; color: #4a5568; font-family: 'Inter', sans-serif;">GPA: ${edu.gpa}</div>` : ''}
+                ${edu.gpa ? `<div style="font-size: ${fonts.bodySize}; color: #4a5568; font-family: 'Inter', sans-serif;">GPA: ${edu.gpa}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -983,6 +1076,9 @@ function generateTechFocusedHTML(resumeData, formatDate) {
 
 // Fresh Graduate Template
 function generateFreshGraduateHTML(resumeData, formatDate) {
+  const spacing = calculateDynamicSpacing(resumeData);
+  const fonts = getDynamicFontSizes(resumeData);
+  
   return `
   <!DOCTYPE html>
   <html>
@@ -995,38 +1091,40 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
           padding: 0;
           background-color: white;
           color: #333333;
-          line-height: 1.6;
+          line-height: 1.4;
         }
         
         .container {
           width: 100%;
-          max-width: 794px;
+          max-width: 210mm;
           margin: 0 auto;
           background-color: white;
-          padding: 20mm;
+          padding: 15mm;
           box-sizing: border-box;
+          min-height: auto;
         }
 
         .header {
           text-align: center;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
+          margin-bottom: ${spacing.baseSpacing}px;
+          padding-bottom: ${spacing.itemSpacing}px;
           border-bottom: 3px solid #4CAF50;
         }
 
         .name {
-          font-size: 2.4rem;
+          font-size: ${fonts.nameSize === '2rem' ? '2.2rem' : '2.4rem'};
           font-weight: 700;
           color: #2E7D32;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           margin-top: 0;
           letter-spacing: 1px;
+          line-height: 1.1;
         }
 
         .subtitle {
           color: #666666;
-          margin-bottom: 16px;
-          font-size: 1rem;
+          margin-bottom: 12px;
+          font-size: ${fonts.bodySize};
           font-style: italic;
         }
 
@@ -1034,9 +1132,9 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 16px;
-          margin-bottom: 16px;
-          font-size: 0.9rem;
+          gap: 12px;
+          margin-bottom: 12px;
+          font-size: ${fonts.smallSize};
           color: #555555;
         }
 
@@ -1044,99 +1142,111 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 16px;
-          font-size: 0.85rem;
+          gap: 12px;
+          font-size: ${fonts.smallSize};
           color: #4CAF50;
         }
 
         .section {
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.baseSpacing}px;
+        }
+
+        .section:last-child {
+          margin-bottom: 0;
         }
 
         .section-title {
-          font-size: 1.2rem;
+          font-size: ${fonts.sectionTitleSize};
           font-weight: 600;
           color: #2E7D32;
-          margin-bottom: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
           margin-top: 0;
           display: flex;
           align-items: center;
+          line-height: 1.2;
         }
 
         .section-title::before {
           content: '';
           width: 4px;
-          height: 20px;
+          height: 16px;
           background-color: #4CAF50;
-          margin-right: 12px;
+          margin-right: 10px;
         }
 
         .objective-box {
           background-color: #F1F8E9;
           border: 1px solid #C8E6C9;
-          border-radius: 8px;
-          padding: 20px;
+          border-radius: 6px;
+          padding: 16px;
         }
 
         .summary-text {
-          font-size: 0.95rem;
-          line-height: 1.7;
+          font-size: ${fonts.bodySize};
+          line-height: 1.5;
           color: #333333;
           text-align: justify;
         }
 
         .item {
-          margin-bottom: 20px;
-          padding: 16px;
+          margin-bottom: ${spacing.itemSpacing}px;
+          padding: 12px;
           border: 1px solid #E0E0E0;
           border-radius: 6px;
           background-color: #FAFAFA;
+        }
+
+        .item:last-child {
+          margin-bottom: 0;
         }
 
         .item-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-title {
-          font-size: 1.1rem;
+          font-size: ${fonts.itemTitleSize};
           font-weight: 600;
           color: #2E7D32;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
+          line-height: 1.2;
         }
 
         .item-subtitle {
-          font-size: 1rem;
+          font-size: ${fonts.bodySize};
           font-weight: 500;
           color: #666666;
           margin: 0;
+          line-height: 1.2;
         }
 
         .item-date {
-          font-size: 0.9rem;
+          font-size: ${fonts.smallSize};
           color: #4CAF50;
           white-space: nowrap;
           font-weight: 600;
+          line-height: 1.2;
         }
 
         .item-location {
-          font-size: 0.9rem;
+          font-size: ${fonts.smallSize};
           color: #888888;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-description {
-          font-size: 0.9rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #333333;
           white-space: pre-line;
           text-align: justify;
         }
 
         .skills-box {
-          padding: 16px;
+          padding: 12px;
           background-color: #F1F8E9;
           border: 1px solid #C8E6C9;
           border-radius: 6px;
@@ -1145,47 +1255,49 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
         .skills-container {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
 
         .skill-chip {
           display: inline-block;
-          padding: 8px 16px;
+          padding: 6px 12px;
           border: 2px solid #4CAF50;
-          border-radius: 20px;
-          font-size: 0.85rem;
+          border-radius: 16px;
+          font-size: ${fonts.smallSize};
           color: #2E7D32;
           background-color: white;
           font-weight: 500;
+          line-height: 1.2;
         }
 
         .tech-chips {
           display: flex;
           flex-wrap: wrap;
-          gap: 4px;
-          margin-bottom: 8px;
+          gap: 3px;
+          margin-bottom: 6px;
         }
 
         .tech-chip {
           display: inline-block;
-          padding: 4px 12px;
+          padding: 3px 8px;
           background-color: #4CAF50;
           color: white;
-          border-radius: 12px;
-          font-size: 0.75rem;
+          border-radius: 10px;
+          font-size: ${fonts.smallSize};
           font-weight: 500;
+          line-height: 1.2;
         }
 
         .hobbies-box {
-          padding: 16px;
+          padding: 12px;
           background-color: #F1F8E9;
           border: 1px solid #C8E6C9;
           border-radius: 6px;
         }
 
         .hobbies-text {
-          font-size: 0.9rem;
-          line-height: 1.6;
+          font-size: ${fonts.bodySize};
+          line-height: 1.4;
           color: #333333;
         }
 
@@ -1196,8 +1308,9 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
           }
           .container {
             box-shadow: none;
-            padding: 15mm;
+            padding: 10mm;
             page-break-inside: avoid;
+            min-height: auto;
           }
           .section {
             page-break-inside: avoid;
@@ -1251,8 +1364,8 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
                     ${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}
                   </div>
                 </div>
-                ${edu.gpa ? `<div style="font-size: 0.9rem; color: #333333; margin-bottom: 8px;"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
-                ${edu.achievements ? `<div style="font-size: 0.9rem; color: #333333; line-height: 1.6;"><strong>Achievements:</strong> ${edu.achievements}</div>` : ''}
+                ${edu.gpa ? `<div style="font-size: ${fonts.bodySize}; color: #333333; margin-bottom: 6px;"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
+                ${edu.achievements ? `<div style="font-size: ${fonts.bodySize}; color: #333333; line-height: 1.4;"><strong>Achievements:</strong> ${edu.achievements}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1265,18 +1378,18 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
               <div class="item">
                 <div class="item-header">
                   <h3 class="item-title">${project.name || ''}</h3>
-                  ${project.duration ? `<div style="color: #888888; font-size: 0.85rem;">${project.duration}</div>` : ''}
+                  ${project.duration ? `<div style="color: #888888; font-size: ${fonts.smallSize};">${project.duration}</div>` : ''}
                 </div>
                 ${project.description ? `<div class="item-description">${project.description}</div>` : ''}
                 ${project.technologies ? `
-                  <div style="margin-bottom: 8px;">
-                    <div style="font-size: 0.85rem; color: #666666; margin-bottom: 4px;"><strong>Technologies Used:</strong></div>
+                  <div style="margin-bottom: 6px;">
+                    <div style="font-size: ${fonts.smallSize}; color: #666666; margin-bottom: 3px;"><strong>Technologies Used:</strong></div>
                     <div class="tech-chips">
                       ${project.technologies.split(',').map(tech => `<span class="tech-chip">${tech.trim()}</span>`).join('')}
                     </div>
                   </div>
                 ` : ''}
-                ${project.link ? `<div style="font-size: 0.85rem; color: #4CAF50;"><strong>Project Link:</strong> ${project.link}</div>` : ''}
+                ${project.link ? `<div style="font-size: ${fonts.smallSize}; color: #4CAF50;"><strong>Project Link:</strong> ${project.link}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1318,10 +1431,10 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
           <div class="section">
             <h2 class="section-title">ACHIEVEMENTS & CERTIFICATIONS</h2>
             ${resumeData.achievements.map(achievement => `
-              <div style="margin-bottom: 16px; padding: 16px; background-color: #FAFAFA; border-radius: 4px;">
-                <h3 style="font-weight: 600; font-size: 0.95rem; color: #2E7D32; margin: 0 0 4px 0;">🏆 ${achievement.title || ''}</h3>
-                ${achievement.organization ? `<div style="color: #666666; font-size: 0.9rem; margin-bottom: 4px;">${achievement.organization}</div>` : ''}
-                ${achievement.description ? `<div style="font-size: 0.9rem; color: #333333;">${achievement.description}</div>` : ''}
+              <div style="margin-bottom: 12px; padding: 12px; background-color: #FAFAFA; border-radius: 4px;">
+                <h3 style="font-weight: 600; font-size: ${fonts.itemTitleSize}; color: #2E7D32; margin: 0 0 3px 0;">🏆 ${achievement.title || ''}</h3>
+                ${achievement.organization ? `<div style="color: #666666; font-size: ${fonts.bodySize}; margin-bottom: 3px;">${achievement.organization}</div>` : ''}
+                ${achievement.description ? `<div style="font-size: ${fonts.bodySize}; color: #333333;">${achievement.description}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1343,6 +1456,9 @@ function generateFreshGraduateHTML(resumeData, formatDate) {
 
 // Minimal Elegant Template
 function generateMinimalElegantHTML(resumeData, formatDate) {
+  const spacing = calculateDynamicSpacing(resumeData);
+  const fonts = getDynamicFontSizes(resumeData);
+  
   return `
   <!DOCTYPE html>
   <html>
@@ -1355,47 +1471,49 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
           padding: 0;
           background-color: white;
           color: #2c2c2c;
-          line-height: 1.7;
+          line-height: 1.5;
         }
         
         .container {
           width: 100%;
-          max-width: 794px;
+          max-width: 210mm;
           margin: 0 auto;
           background-color: white;
-          padding: 25mm;
+          padding: 20mm;
           box-sizing: border-box;
+          min-height: auto;
         }
 
         .header {
           text-align: center;
-          margin-bottom: 40px;
+          margin-bottom: ${spacing.baseSpacing + 8}px;
         }
 
         .name {
-          font-size: 3rem;
+          font-size: ${fonts.nameSize === '2rem' ? '2.5rem' : '3rem'};
           font-weight: 400;
           color: #1a1a1a;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           margin-top: 0;
           letter-spacing: 2px;
           font-family: "Playfair Display", serif;
+          line-height: 1.1;
         }
 
         .divider-line {
-          width: 60px;
+          width: 50px;
           height: 1px;
           background-color: #d4af37;
-          margin: 0 auto 24px auto;
+          margin: 0 auto 20px auto;
         }
 
         .contact-info {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 24px;
-          margin-bottom: 16px;
-          font-size: 1rem;
+          gap: 20px;
+          margin-bottom: 12px;
+          font-size: ${fonts.bodySize};
           color: #666666;
           font-family: "Lato", sans-serif;
         }
@@ -1404,45 +1522,50 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 24px;
-          font-size: 0.9rem;
+          gap: 20px;
+          font-size: ${fonts.smallSize};
           color: #d4af37;
           font-family: "Lato", sans-serif;
         }
 
         .section {
-          margin-bottom: 40px;
+          margin-bottom: ${spacing.baseSpacing + 8}px;
+        }
+
+        .section:last-child {
+          margin-bottom: 0;
         }
 
         .section-title {
-          font-size: 1.5rem;
+          font-size: ${fonts.sectionTitleSize === '1rem' ? '1.3rem' : '1.5rem'};
           font-weight: 400;
           color: #1a1a1a;
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.itemSpacing + 8}px;
           margin-top: 0;
           font-family: "Playfair Display", serif;
           text-align: center;
           position: relative;
           display: inline-block;
           width: 100%;
+          line-height: 1.2;
         }
 
         .section-title::after {
           content: '';
           position: absolute;
-          bottom: -8px;
+          bottom: -6px;
           left: 50%;
           transform: translateX(-50%);
-          width: 40px;
+          width: 32px;
           height: 1px;
           background-color: #d4af37;
         }
 
         .summary-text {
-          font-size: 1.1rem;
-          line-height: 1.8;
+          font-size: ${fonts.itemTitleSize};
+          line-height: 1.6;
           color: #444444;
-          max-width: 80%;
+          max-width: 85%;
           margin: 0 auto;
           font-style: italic;
           font-family: "Lato", sans-serif;
@@ -1450,43 +1573,50 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
         }
 
         .item {
-          margin-bottom: 24px;
+          margin-bottom: ${spacing.itemSpacing + 4}px;
+        }
+
+        .item:last-child {
+          margin-bottom: 0;
         }
 
         .item-header {
           display: flex;
           justify-content: space-between;
           align-items: baseline;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .item-title {
-          font-size: 1.2rem;
+          font-size: ${fonts.itemTitleSize};
           font-weight: 600;
           color: #1a1a1a;
-          margin: 0 0 4px 0;
+          margin: 0 0 3px 0;
           font-family: "Playfair Display", serif;
+          line-height: 1.2;
         }
 
         .item-subtitle {
-          font-size: 1rem;
+          font-size: ${fonts.bodySize};
           color: #d4af37;
           font-weight: 500;
           margin: 0;
           font-family: "Lato", sans-serif;
+          line-height: 1.2;
         }
 
         .item-date {
-          font-size: 0.9rem;
+          font-size: ${fonts.smallSize};
           color: #888888;
           white-space: nowrap;
           font-family: "Lato", sans-serif;
           text-align: right;
+          line-height: 1.2;
         }
 
         .item-description {
-          font-size: 1rem;
-          line-height: 1.8;
+          font-size: ${fonts.bodySize};
+          line-height: 1.6;
           color: #444444;
           white-space: pre-line;
           text-align: justify;
@@ -1494,8 +1624,8 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
         }
 
         .skills-text {
-          font-size: 1rem;
-          line-height: 2;
+          font-size: ${fonts.bodySize};
+          line-height: 1.8;
           color: #444444;
           font-family: "Lato", sans-serif;
           text-align: center;
@@ -1508,8 +1638,9 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
           }
           .container {
             box-shadow: none;
-            padding: 20mm;
+            padding: 15mm;
             page-break-inside: avoid;
+            min-height: auto;
           }
           .section {
             page-break-inside: avoid;
@@ -1580,10 +1711,10 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
               <div class="item">
                 <div class="item-header">
                   <h3 class="item-title">${project.name || ''}</h3>
-                  ${project.duration ? `<div style="color: #888888; font-size: 0.9rem; font-family: 'Lato', sans-serif;">${project.duration}</div>` : ''}
+                  ${project.duration ? `<div style="color: #888888; font-size: ${fonts.smallSize}; font-family: 'Lato', sans-serif;">${project.duration}</div>` : ''}
                 </div>
                 ${project.description ? `<div class="item-description">${project.description}</div>` : ''}
-                ${project.technologies ? `<div style="font-size: 0.9rem; color: #d4af37; font-style: italic; font-family: 'Lato', sans-serif;">Technologies: ${project.technologies}</div>` : ''}
+                ${project.technologies ? `<div style="font-size: ${fonts.smallSize}; color: #d4af37; font-style: italic; font-family: 'Lato', sans-serif;">Technologies: ${project.technologies}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1604,7 +1735,7 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
                     ${edu.location ? `<br>${edu.location}` : ''}
                   </div>
                 </div>
-                ${edu.gpa ? `<div style="font-size: 0.9rem; color: #444444; font-family: 'Lato', sans-serif;">GPA: ${edu.gpa}</div>` : ''}
+                ${edu.gpa ? `<div style="font-size: ${fonts.smallSize}; color: #444444; font-family: 'Lato', sans-serif;">GPA: ${edu.gpa}</div>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1616,8 +1747,8 @@ function generateMinimalElegantHTML(resumeData, formatDate) {
             ${resumeData.achievements.map(achievement => `
               <div class="item">
                 <h3 class="item-title">${achievement.title || ''}</h3>
-                ${achievement.organization ? `<div style="color: #d4af37; font-size: 0.9rem; margin-bottom: 4px; font-family: 'Lato', sans-serif;">${achievement.organization}</div>` : ''}
-                ${achievement.description ? `<div style="font-size: 0.9rem; color: #444444; font-family: 'Lato', sans-serif;">${achievement.description}</div>` : ''}
+                ${achievement.organization ? `<div style="color: #d4af37; font-size: ${fonts.smallSize}; margin-bottom: 3px; font-family: 'Lato', sans-serif;">${achievement.organization}</div>` : ''}
+                ${achievement.description ? `<div style="font-size: ${fonts.smallSize}; color: #444444; font-family: 'Lato', sans-serif;">${achievement.description}</div>` : ''}
               </div>
             `).join('')}
           </div>
