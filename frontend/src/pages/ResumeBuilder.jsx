@@ -29,6 +29,7 @@ import SkillsForm from '../components/forms/SkillsForm';
 import AchievementsForm from '../components/forms/AchievementsForm';
 import HobbiesForm from '../components/forms/HobbiesForm';
 import ResumePreview from '../components/ResumePreview';
+import { TemplateSelector } from '../components/templates';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,6 +42,7 @@ function ResumeBuilder() {
   const { user, token } = useAuth();
   
   const [activeStep, setActiveStep] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [resumeData, setResumeData] = useState({
     personalDetails: {},
     summary: '',
@@ -57,6 +59,7 @@ function ResumeBuilder() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const fresherSteps = [
+    'Template',
     'Personal Details',
     'Summary',
     'Education',
@@ -68,6 +71,7 @@ function ResumeBuilder() {
   ];
 
   const experiencedSteps = [
+    'Template',
     'Personal Details',
     'Summary',
     'Experience',
@@ -107,6 +111,10 @@ function ResumeBuilder() {
     }));
   };
 
+  const handleTemplateSelect = (template) => {
+    setSelectedTemplate(template);
+  };
+
   const saveResume = async () => {
     if (!user || !token) {
       setSnackbar({ open: true, message: 'Please login to save resume', severity: 'error' });
@@ -115,7 +123,12 @@ function ResumeBuilder() {
 
     setSaving(true);
     try {
-      const response = await axios.post(`${api_url}/api/save-resume`, resumeData, {
+      const dataToSave = {
+        ...resumeData,
+        selectedTemplate: selectedTemplate
+      };
+
+      const response = await axios.post(`${api_url}/api/save-resume`, dataToSave, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -142,7 +155,12 @@ function ResumeBuilder() {
   const downloadResume = async () => {
     setDownloading(true);
     try {
-      const response = await axios.post(`${api_url}/api/download-resume`, resumeData, {
+      const dataToDownload = {
+        ...resumeData,
+        selectedTemplate: selectedTemplate
+      };
+
+      const response = await axios.post(`${api_url}/api/download-resume`, dataToDownload, {
         responseType: 'blob',
         headers: {
           'Content-Type': 'application/json'
@@ -182,6 +200,14 @@ function ResumeBuilder() {
     const stepName = steps[step];
     
     switch (stepName) {
+      case 'Template':
+        return (
+          <TemplateSelector
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={handleTemplateSelect}
+            resumeData={resumeData}
+          />
+        );
       case 'Personal Details':
         return (
           <PersonalDetailsForm
@@ -361,17 +387,17 @@ function ResumeBuilder() {
     return (
       <ResumePreview
         resumeData={resumeData}
+        selectedTemplate={selectedTemplate}
         onBack={() => setShowPreview(false)}
         onSave={saveResume}
         onDownload={downloadResume}
+        onTemplateChange={setSelectedTemplate}
         saving={saving}
         downloading={downloading}
       />
     );
   }
 
- 
-  
   const progress = activeStep === steps.length - 1 ? 100 : (activeStep / steps.length) * 100;
 
   return (
@@ -411,6 +437,17 @@ function ResumeBuilder() {
                 color="secondary" 
                 sx={{ fontWeight: 600 }} 
               />
+              {selectedTemplate && (
+                <Chip
+                  icon={selectedTemplate.icon}
+                  label={selectedTemplate.name}
+                  sx={{
+                    backgroundColor: `${selectedTemplate.color}15`,
+                    color: selectedTemplate.color,
+                    fontWeight: 600
+                  }}
+                />
+              )}
             </Box>
             
            <motion.div
@@ -535,6 +572,7 @@ function ResumeBuilder() {
                   startIcon={<Preview />}
                   onClick={() => setShowPreview(true)}
                   fullWidth
+                  disabled={!selectedTemplate && activeStep === 0}
                   sx={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     borderRadius: 2
@@ -587,6 +625,7 @@ function ResumeBuilder() {
                         onClick={() => setShowPreview(true)}
                         size="large"
                         startIcon={<Preview />}
+                        disabled={!selectedTemplate}
                         sx={{
                           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           px: 4,
@@ -601,6 +640,7 @@ function ResumeBuilder() {
                         variant="contained"
                         onClick={handleNext}
                         size="large"
+                        disabled={activeStep === 0 && !selectedTemplate}
                         sx={{
                           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           px: 4,
