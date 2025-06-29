@@ -1,3 +1,4 @@
+// Updated server.js CORS configuration
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -32,23 +33,63 @@ setTimeout(async () => {
   }
 }, 2000);
 
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://sd-resume-builder.vercel.app',
-        process.env.FRONTEND_URL
-      ].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
-}));
+// FIXED CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? [
+          'https://sd-resume-builder.vercel.app',
+          'https://ats-resume-builder-1.onrender.com',
+          process.env.FRONTEND_URL
+        ].filter(Boolean)
+      : [
+          'http://localhost:3000', 
+          'http://localhost:3001',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001'
+        ];
 
-// app.use(cors({
-//   origin: '*',
-//   credentials: false,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`❌ CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'X-Access-Token'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+
+// Alternative: If you want to allow all origins temporarily for testing
+// ONLY USE THIS FOR TESTING - NOT RECOMMENDED FOR PRODUCTION
+/*
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+*/
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -56,11 +97,45 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Request logging middleware
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
+  console.log(`${timestamp} - ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'No Origin'}`);
   
   if (req.method === 'POST' && req.body && Object.keys(req.body).length > 0) {
     const logBody = { ...req.body };
     if (logBody.password) logBody.password = '***';
     if (logBody.idToken) logBody.idToken = '***';
+  }
+  
+  next();
+});
+
+// Add explicit CORS headers middleware (additional safety)
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [
+        'https://sd-resume-builder.vercel.app',
+        'https://ats-resume-builder-1.onrender.com',
+        process.env.FRONTEND_URL
+      ].filter(Boolean)
+    : [
+        'http://localhost:3000', 
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001'
+      ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cache-Control,X-Access-Token');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).send();
+    return;
   }
   
   next();
@@ -92,7 +167,12 @@ app.get('/api/health', async (req, res) => {
       ai: 'Available',
       admin: 'Available'
     },
-    version: '2.0.0'
+    version: '2.0.0',
+    cors: {
+      allowedOrigins: process.env.NODE_ENV === 'production' 
+        ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
+        : ['http://localhost:3000', 'http://localhost:3001']
+    }
   });
 });
 
@@ -215,6 +295,10 @@ const server = app.listen(PORT, () => {
   console.log(`✅ Server with Admin Dashboard is ready on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔒 CORS allowed origins:`, process.env.NODE_ENV === 'production' 
+    ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
+    : ['http://localhost:3000', 'http://localhost:3001']
+  );
 });
 
 // Handle server errors
