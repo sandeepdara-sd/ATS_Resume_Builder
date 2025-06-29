@@ -62,8 +62,6 @@ const ensureAdminExists = async () => {
     await admin.save();
 
     console.log('✅ Admin user created successfully!');
-    console.log('📧 Email:', adminEmail);
-    console.log('🔑 Password:', adminPassword);
     console.log('🔐 Role: super-admin');
     console.log('⚠️  IMPORTANT: Change the default password after first login!');
     
