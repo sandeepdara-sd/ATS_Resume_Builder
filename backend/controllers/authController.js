@@ -6,28 +6,26 @@ import PasswordReset from '../models/PasswordReset.js';
 import admin, { canVerifyFirebaseTokens } from '../config/firebase.js';
 import nodemailer from 'nodemailer';
 
-// Email configuration with better error handling
+// FIXED: Email configuration with better error handling and correct Gmail setup
 const createEmailTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
   
   if (!emailUser || !emailPass) {
     console.log('⚠️ Email credentials not configured');
+    console.log('EMAIL_USER:', emailUser ? 'Set' : 'Missing');
+    console.log('EMAIL_PASS:', emailPass ? 'Set' : 'Missing');
     return null;
   }
 
+  // FIXED: Simplified Gmail configuration that works better
   return nodemailer.createTransporter({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    service: 'gmail', // Use service instead of manual host/port
     auth: {
       user: emailUser,
-      pass: emailPass
+      pass: emailPass // This should be your Gmail App Password (16 characters)
     },
-    tls: {
-      rejectUnauthorized: false
-    }
+    // FIXED: Remove unnecessary TLS config that can cause issues
   });
 };
 
@@ -141,7 +139,8 @@ export const forgotPassword = async (req, res) => {
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
 
-    // Check if email credentials are configured
+    // FIXED: Better error handling and logging
+    console.log('🔄 Creating email transporter...');
     const transporter = createEmailTransporter();
     
     if (!transporter) {
@@ -154,11 +153,12 @@ export const forgotPassword = async (req, res) => {
     }
 
     try {
-      // Verify transporter configuration
+      // FIXED: Test transporter before sending
+      console.log('🔄 Verifying email transporter...');
       await transporter.verify();
       console.log('✅ Email transporter verified successfully');
 
-      // Send email
+      // FIXED: Improved email template and better error handling
       const mailOptions = {
         from: {
           name: 'ATS Resume Builder',
@@ -230,6 +230,7 @@ export const forgotPassword = async (req, res) => {
         `
       };
 
+      console.log('🔄 Sending password reset email...');
       const info = await transporter.sendMail(mailOptions);
       console.log('✅ Password reset email sent successfully:', info.messageId);
 
@@ -240,19 +241,34 @@ export const forgotPassword = async (req, res) => {
 
     } catch (emailError) {
       console.error('❌ Failed to send email:', emailError);
+      console.error('❌ Email error details:', {
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        responseCode: emailError.responseCode
+      });
+      
+      // FIXED: Provide more specific error messages
+      let errorMessage = 'Failed to send reset email';
+      if (emailError.code === 'EAUTH') {
+        errorMessage = 'Email authentication failed. Please check email credentials.';
+      } else if (emailError.code === 'ECONNECTION') {
+        errorMessage = 'Could not connect to email server.';
+      }
+      
       console.log('🔗 Password reset URL (for development):', resetUrl);
       
-      // Return success but mention email issue
-      res.json({ 
-        message: 'Password reset link generated. Please check server logs for the reset URL.',
-        email: email,
-        resetUrl: resetUrl // Remove this in production
+      // FIXED: Return error status for email failures
+      res.status(500).json({ 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? emailError.message : undefined,
+        resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined
       });
     }
 
   } catch (error) {
     console.error('❌ Forgot password error:', error);
-    res.status(500).json({ error: 'Failed to send password reset email' });
+    res.status(500).json({ error: 'Failed to process password reset request' });
   }
 };
 
