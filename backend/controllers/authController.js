@@ -21,7 +21,7 @@ const createEmailTransporter = () => {
   console.log('📧 Creating email transporter with:', emailUser);
 
   // FIXED: Simplified Gmail configuration that works better
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
     port: 587,
@@ -288,7 +288,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// FIXED: Updated resetPassword to sync with Firebase Auth
 export const resetPassword = async (req, res) => {
   try {
     const { token, email, newPassword } = req.body;
@@ -319,28 +318,7 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // FIXED: Update password in Firebase Auth if user has firebaseUid
-    const canVerifyFirebase = await canVerifyFirebaseTokens();
-    
-    if (canVerifyFirebase && user.firebaseUid) {
-      try {
-        console.log('🔄 Updating password in Firebase Auth for user:', user.firebaseUid);
-        await admin.auth().updateUser(user.firebaseUid, {
-          password: newPassword
-        });
-        console.log('✅ Firebase Auth password updated successfully');
-      } catch (firebaseError) {
-        console.error('❌ Failed to update Firebase Auth password:', firebaseError);
-        
-        // If Firebase update fails, we should still continue with MongoDB update
-        // but log the error for debugging
-        console.log('⚠️ Continuing with MongoDB password update despite Firebase error');
-      }
-    } else if (user.firebaseUid) {
-      console.log('⚠️ Firebase Admin not configured, skipping Firebase password update');
-    }
-
-    // Hash new password and update user in MongoDB
+    // Hash new password and update user
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.updatedAt = new Date();
@@ -352,17 +330,13 @@ export const resetPassword = async (req, res) => {
 
     console.log('✅ Password reset successful for:', email);
 
-    res.json({ 
-      message: 'Password reset successful',
-      firebaseUpdated: canVerifyFirebase && user.firebaseUid ? true : false
-    });
+    res.json({ message: 'Password reset successful' });
   } catch (error) {
     console.error('❌ Reset password error:', error);
     res.status(500).json({ error: 'Failed to reset password' });
   }
 };
 
-// FIXED: Updated updatePassword to sync with Firebase Auth
 export const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -387,28 +361,7 @@ export const updatePassword = async (req, res) => {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    // FIXED: Update password in Firebase Auth if user has firebaseUid
-    const canVerifyFirebase = await canVerifyFirebaseTokens();
-    
-    if (canVerifyFirebase && user.firebaseUid) {
-      try {
-        console.log('🔄 Updating password in Firebase Auth for user:', user.firebaseUid);
-        await admin.auth().updateUser(user.firebaseUid, {
-          password: newPassword
-        });
-        console.log('✅ Firebase Auth password updated successfully');
-      } catch (firebaseError) {
-        console.error('❌ Failed to update Firebase Auth password:', firebaseError);
-        return res.status(500).json({ 
-          error: 'Failed to update password in Firebase Auth',
-          details: process.env.NODE_ENV === 'development' ? firebaseError.message : undefined
-        });
-      }
-    } else if (user.firebaseUid) {
-      console.log('⚠️ Firebase Admin not configured, skipping Firebase password update');
-    }
-
-    // Hash and update new password in MongoDB
+    // Hash and update new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.updatedAt = new Date();
@@ -416,10 +369,7 @@ export const updatePassword = async (req, res) => {
 
     console.log('✅ Password updated successfully for:', user.email);
 
-    res.json({ 
-      message: 'Password updated successfully',
-      firebaseUpdated: canVerifyFirebase && user.firebaseUid ? true : false
-    });
+    res.json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error('❌ Update password error:', error);
     res.status(500).json({ error: 'Failed to update password' });
