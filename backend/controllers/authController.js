@@ -18,14 +18,21 @@ const createEmailTransporter = () => {
     return null;
   }
 
+  console.log('📧 Creating email transporter with:', emailUser);
+
   // FIXED: Simplified Gmail configuration that works better
   return nodemailer.createTransporter({
-    service: 'gmail', // Use service instead of manual host/port
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
       user: emailUser,
-      pass: emailPass // This should be your Gmail App Password (16 characters)
+      pass: emailPass
     },
-    // FIXED: Remove unnecessary TLS config that can cause issues
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 };
 
@@ -113,14 +120,19 @@ export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
+    console.log('🔄 Forgot password request for:', email);
+
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('❌ User not found:', email);
       return res.status(404).json({ error: 'User not found' });
     }
+
+    console.log('✅ User found:', user.email);
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -136,8 +148,12 @@ export const forgotPassword = async (req, res) => {
       expiresAt: new Date(Date.now() + 3600000) // 1 hour
     });
 
+    console.log('✅ Reset token created for:', user.email);
+
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
+
+    console.log('🔗 Reset URL:', resetUrl);
 
     // FIXED: Better error handling and logging
     console.log('🔄 Creating email transporter...');

@@ -17,6 +17,7 @@ const createAdmin = async () => {
       process.exit(1);
     }
 
+    console.log('🔄 Connecting to MongoDB...');
     await mongoose.connect(mongoURI);
     console.log('✅ Connected to MongoDB');
 
