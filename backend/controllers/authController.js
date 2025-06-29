@@ -8,8 +8,8 @@ import nodemailer from 'nodemailer';
 
 // FIXED: Email configuration with better error handling and correct Gmail setup
 const createEmailTransporter = () => {
-  const emailUser = 'sd.resumebuilding@gmail.com';
-  const emailPass = 'ttzucclvplusttkf';
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
   
   if (!emailUser || !emailPass) {
     console.log('⚠️ Email credentials not configured');
