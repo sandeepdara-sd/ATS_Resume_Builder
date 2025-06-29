@@ -1,4 +1,4 @@
-// Updated server.js with improved CORS configuration
+// Updated server.js with improved CORS configuration and Auto Admin Creation
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -13,6 +13,9 @@ import aiRoutes from './routes/ai.js';
 import feedbackRoutes from './routes/feedback.js';
 import adminRoutes from './routes/admin.js';
 
+// Import Admin model for auto-creation
+import Admin from './models/Admin.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -24,11 +27,61 @@ initializeFirebase();
 // Connect to MongoDB
 await connectDB();
 
-// Test MongoDB connection
+// Function to automatically create admin user if it doesn't exist
+const ensureAdminExists = async () => {
+  try {
+    console.log('🔍 Checking if admin user exists...');
+    
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
+    
+    if (existingAdmin) {
+      console.log('✅ Admin user already exists');
+      console.log('📧 Email: admin@resumebuilder.com');
+      console.log('🔐 Use your existing password to login');
+      return;
+    }
+
+    console.log('🔄 Creating initial admin user...');
+    
+    // Get admin credentials from environment variables or use defaults
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@resumebuilder.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminName = process.env.ADMIN_NAME || 'Super Admin';
+    
+    // Create admin user
+    const admin = new Admin({
+      email: adminEmail,
+      password: adminPassword, // This will be hashed by the pre-save middleware
+      name: adminName,
+      role: 'super-admin',
+      permissions: ['users', 'resumes', 'feedback', 'analytics', 'settings'],
+      isActive: true
+    });
+
+    await admin.save();
+
+    console.log('✅ Admin user created successfully!');
+    console.log('📧 Email:', adminEmail);
+    console.log('🔑 Password:', adminPassword);
+    console.log('🔐 Role: super-admin');
+    console.log('⚠️  IMPORTANT: Change the default password after first login!');
+    
+  } catch (error) {
+    console.error('❌ Error ensuring admin exists:', error);
+    // Don't exit the process, just log the error
+    // The server should still start even if admin creation fails
+  }
+};
+
+// Test MongoDB connection and create admin if needed
 setTimeout(async () => {
   const isConnected = await testConnection();
   if (isConnected) {
     console.log('✅ MongoDB is ready for operations');
+    
+    // Automatically create admin user if it doesn't exist
+    await ensureAdminExists();
   } else {
     console.log('⚠️ MongoDB connection test failed');
   }
@@ -180,10 +233,34 @@ app.get("/", (req, res) => {
   });
 });
 
+// Deploy initialization endpoint (optional - for manual admin creation if needed)
+app.get('/deploy/init-admin', async (req, res) => {
+  try {
+    // Optional: Add a simple security check
+    const deployKey = req.query.key;
+    if (deployKey !== process.env.DEPLOY_KEY && deployKey !== 'init-admin-2024') {
+      return res.status(403).json({ error: 'Unauthorized - Invalid deploy key' });
+    }
+
+    await ensureAdminExists();
+
+    res.json({
+      message: 'Admin initialization completed',
+      note: 'Check server logs for admin credentials'
+    });
+  } catch (error) {
+    console.error('❌ Deploy init error:', error);
+    res.status(500).json({ error: 'Failed to initialize admin' });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {
     const mongoStatus = await testConnection();
+    
+    // Check if admin exists
+    const adminExists = await Admin.findOne({ email: 'admin@resumebuilder.com' });
     
     res.json({ 
       status: 'OK', 
@@ -194,7 +271,7 @@ app.get('/api/health', async (req, res) => {
         mongodb: mongoStatus ? 'Connected' : 'Disconnected',
         firebase: 'Initialized',
         ai: 'Available',
-        admin: 'Available',
+        admin: adminExists ? 'Admin User Created' : 'Admin User Missing',
         email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'
       },
       version: '2.0.0',
@@ -253,6 +330,9 @@ app.get('/api', (req, res) => {
         'GET /api/admin/users',
         'GET /api/admin/resumes',
         'GET /api/admin/feedback'
+      ],
+      deployment: [
+        'GET /deploy/init-admin?key=init-admin-2024'
       ]
     }
   });
@@ -373,6 +453,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔒 CORS allowed origins:`);
   getAllowedOrigins().forEach(origin => console.log(`   - ${origin}`));
   console.log(`📧 Email service: ${process.env.EMAIL_USER && process.env.EMAIL_PASS ? '✅ Configured' : '❌ Not Configured'}`);
+  console.log(`🔐 Admin auto-creation: ✅ Enabled`);
   console.log(`================================================\n`);
 });
 
