@@ -9,7 +9,8 @@ import {
   deleteResume,
   getAllFeedback,
   updateFeedbackStatus,
-  deleteFeedback
+  deleteFeedback,
+  createInitialAdmin // Add this new function
 } from '../controllers/adminController.js';
 import { authenticateAdmin, requirePermission } from '../middleware/adminAuth.js';
 
@@ -17,6 +18,9 @@ const router = express.Router();
 
 // Admin Authentication
 router.post('/login', adminLogin);
+
+// Initial admin creation route (for free tier deployment)
+router.post('/create-initial-admin', createInitialAdmin);
 
 // Dashboard
 router.get('/dashboard/stats', authenticateAdmin, getDashboardStats);

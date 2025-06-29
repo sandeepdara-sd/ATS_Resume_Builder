@@ -5,6 +5,56 @@ import Feedback from '../models/Feedback.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
+// Create Initial Admin (for free tier deployment)
+export const createInitialAdmin = async (req, res) => {
+  try {
+    const { secretKey } = req.body;
+    
+    // Use a secret key to prevent unauthorized admin creation
+    const expectedSecret = process.env.ADMIN_CREATION_SECRET || 'create-admin-2024';
+    
+    if (secretKey !== expectedSecret) {
+      return res.status(403).json({ error: 'Invalid secret key' });
+    }
+
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
+    if (existingAdmin) {
+      return res.status(400).json({ 
+        error: 'Admin already exists',
+        message: 'Admin user already created. Use email: admin@resumebuilder.com, password: admin123'
+      });
+    }
+
+    // Create admin user
+    const admin = new Admin({
+      email: 'admin@resumebuilder.com',
+      password: 'admin123', // This will be hashed by the pre-save middleware
+      name: 'Super Admin',
+      role: 'super-admin',
+      permissions: ['users', 'resumes', 'feedback', 'analytics', 'settings'],
+      isActive: true
+    });
+
+    await admin.save();
+
+    console.log('✅ Admin user created successfully!');
+    console.log('📧 Email: admin@resumebuilder.com');
+    console.log('🔑 Password: admin123');
+
+    res.status(201).json({
+      message: 'Admin user created successfully',
+      credentials: {
+        email: 'admin@resumebuilder.com',
+        password: 'admin123'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error creating admin:', error);
+    res.status(500).json({ error: 'Failed to create admin user' });
+  }
+};
+
 // Admin Authentication
 export const adminLogin = async (req, res) => {
   try {
