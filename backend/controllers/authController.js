@@ -6,7 +6,7 @@ import PasswordReset from '../models/PasswordReset.js';
 import admin, { canVerifyFirebaseTokens } from '../config/firebase.js';
 import nodemailer from 'nodemailer';
 
-// ✅ Email transporter function
+// Email configuration
 const createEmailTransporter = () => {
   return nodemailer.createTransport({
     service: 'gmail',
@@ -17,11 +17,10 @@ const createEmailTransporter = () => {
   });
 };
 
-// ✅ Register
 export const register = async (req, res) => {
   try {
     const { email, password, displayName } = req.body;
-
+    
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -39,20 +38,20 @@ export const register = async (req, res) => {
     });
 
     await user.save();
-
+    
     const token = jwt.sign(
       { _id: user._id, email: user.email },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        displayName: user.displayName
-      }
+    res.status(201).json({ 
+      token, 
+      user: { 
+        _id: user._id, 
+        email: user.email, 
+        displayName: user.displayName 
+      } 
     });
   } catch (error) {
     console.error('❌ Registration error:', error);
@@ -60,11 +59,10 @@ export const register = async (req, res) => {
   }
 };
 
-// ✅ Login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -85,13 +83,13 @@ export const login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        displayName: user.displayName
-      }
+    res.json({ 
+      token, 
+      user: { 
+        _id: user._id, 
+        email: user.email, 
+        displayName: user.displayName 
+      } 
     });
   } catch (error) {
     console.error('❌ Login error:', error);
@@ -99,7 +97,6 @@ export const login = async (req, res) => {
   }
 };
 
-// ✅ Forgot Password
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -113,38 +110,101 @@ export const forgotPassword = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Delete any existing reset tokens for this user
     await PasswordReset.deleteMany({ email: user.email });
-
+    
+    // Save reset token to database
     await PasswordReset.create({
       email: user.email,
       token: resetToken,
       userId: user._id,
-      expiresAt: new Date(Date.now() + 3600000)
+      expiresAt: new Date(Date.now() + 3600000) // 1 hour
     });
 
+    // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
 
+    // Check if email credentials are configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.log('⚠️ Email credentials not configured. Reset URL:', resetUrl);
-      return res.json({
+      return res.json({ 
         message: 'Password reset link generated (check server logs for URL)',
         email: email,
-        resetUrl: resetUrl
+        resetUrl: resetUrl // Remove this in production
       });
     }
 
     try {
-      const transporter = createEmailTransporter();
+      // Send email
+      const transporter = createEmailTransport();
       const mailOptions = {
         from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
         to: email,
         subject: 'Password Reset Request - ATS Resume Builder',
         html: `
-          <p>Hello ${user.displayName || 'User'},</p>
-          <p>Click below to reset your password:</p>
-          <a href="${resetUrl}">${resetUrl}</a>
-          <p>This link will expire in 1 hour.</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #667eea; margin-bottom: 10px;">ATS Resume Builder</h1>
+              <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
+                Hello <strong>${user.displayName || 'User'}</strong>,
+              </p>
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
+                You requested a password reset for your ATS Resume Builder account.
+              </p>
+              <p style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 30px;">
+                Click the button below to reset your password:
+              </p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" 
+                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 8px; 
+                          display: inline-block;
+                          font-weight: 600;
+                          font-size: 16px;">
+                  Reset Password
+                </a>
+              </div>
+              
+              <p style="font-size: 14px; line-height: 1.6; color: #666; margin-bottom: 10px;">
+                Or copy and paste this link in your browser:
+              </p>
+              <p style="word-break: break-all; color: #667eea; font-size: 14px; background: #fff; padding: 10px; border-radius: 5px;">
+                ${resetUrl}
+              </p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+              </p>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+              If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
+            </p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            
+            <div style="text-align: center;">
+              <p style="color: #666; font-size: 12px; margin: 0;">
+                ATS Resume Builder Team<br>
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color: #667eea;">
+                  Visit our website
+                </a>
+              </p>
+            </div>
+          </div>
         `
       };
 
@@ -153,12 +213,13 @@ export const forgotPassword = async (req, res) => {
 
     } catch (emailError) {
       console.error('❌ Failed to send email:', emailError);
+      // Still return success but log the URL for development
       console.log('🔗 Password reset URL (for development):', resetUrl);
     }
 
-    res.json({
+    res.json({ 
       message: 'Password reset email sent successfully',
-      email: email
+      email: email 
     });
 
   } catch (error) {
@@ -167,7 +228,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// ✅ Reset Password
 export const resetPassword = async (req, res) => {
   try {
     const { token, email, newPassword } = req.body;
@@ -180,6 +240,7 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
+    // Find valid reset token
     const resetRecord = await PasswordReset.findOne({
       token,
       email,
@@ -191,16 +252,19 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
 
+    // Find user and update password
     const user = await User.findById(resetRecord.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Hash new password and update user
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.updatedAt = new Date();
     await user.save();
 
+    // Mark reset token as used
     resetRecord.used = true;
     await resetRecord.save();
 
@@ -213,7 +277,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// ✅ Update Password (while logged in)
 export const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -232,11 +295,13 @@ export const updatePassword = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Verify current password
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
+    // Hash and update new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
     user.updatedAt = new Date();
@@ -251,25 +316,26 @@ export const updatePassword = async (req, res) => {
   }
 };
 
-// ✅ Sync Firebase User
 export const syncFirebaseUser = async (req, res) => {
   try {
     const { firebaseUser, idToken } = req.body;
-
+    
     if (!firebaseUser || !idToken) {
       return res.status(400).json({ error: 'Firebase user data and token required' });
     }
 
     const canVerifyFirebase = await canVerifyFirebaseTokens();
-
+    
     if (!canVerifyFirebase) {
+      console.log('⚠️ Firebase Admin not properly configured, creating user without token verification');
+      
       let user = await User.findOne({ 
         $or: [
           { firebaseUid: firebaseUser.uid },
           { email: firebaseUser.email }
         ]
       });
-
+      
       if (!user) {
         user = new User({
           email: firebaseUser.email,
@@ -286,14 +352,14 @@ export const syncFirebaseUser = async (req, res) => {
         await user.save();
       }
 
-      return res.json({
+      return res.json({ 
         success: true,
-        user: {
-          _id: user._id,
-          email: user.email,
+        user: { 
+          _id: user._id, 
+          email: user.email, 
           displayName: user.displayName,
           photoURL: user.photoURL
-        }
+        } 
       });
     }
 
@@ -306,13 +372,13 @@ export const syncFirebaseUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid Firebase token' });
     }
 
-    let user = await User.findOne({
+    let user = await User.findOne({ 
       $or: [
         { firebaseUid: firebaseUser.uid },
         { email: firebaseUser.email }
       ]
     });
-
+    
     if (!user) {
       user = new User({
         email: firebaseUser.email,
@@ -329,14 +395,14 @@ export const syncFirebaseUser = async (req, res) => {
       await user.save();
     }
 
-    res.json({
+    res.json({ 
       success: true,
-      user: {
-        _id: user._id,
-        email: user.email,
+      user: { 
+        _id: user._id, 
+        email: user.email, 
         displayName: user.displayName,
         photoURL: user.photoURL
-      }
+      } 
     });
   } catch (error) {
     console.error('❌ Firebase user sync error:', error);
@@ -344,7 +410,57 @@ export const syncFirebaseUser = async (req, res) => {
   }
 };
 
-// ✅ Get Profile
+export const updateUser = async (req, res) => {
+  const { uid } = req.params;
+  const {
+    displayName,
+    email,
+    photoURL,
+    phone,
+    location,
+    bio,
+    skills,
+    experience,
+    education
+  } = req.body;
+
+  try {
+    const updatedFirebaseUser = await admin.auth().updateUser(uid, {
+      displayName,
+      email,
+      photoURL
+    });
+
+    const updatedUser = await User.findOneAndUpdate(
+      { firebaseUid: uid },
+      {
+        displayName,
+        email,
+        photoURL,
+        phone,
+        location,
+        bio,
+        skills,
+        experience,
+        education
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found in MongoDB' });
+    }
+
+    res.status(200).json({ 
+      message: 'User updated successfully', 
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error('❌ Update failed:', error.message);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+};
+
 export const getUserProfile = async (req, res) => {
   const { uid } = req.params;
 
