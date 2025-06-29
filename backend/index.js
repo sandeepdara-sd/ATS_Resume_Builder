@@ -33,17 +33,16 @@ setTimeout(async () => {
 }, 2000);
 
 // Middleware
-// app.use(cors({
-//   origin: process.env.NODE_ENV === 'production' 
-//     ? [
-//         'https://sd-resume-builder.vercel.app', 
-//         'https://your-vercel-app.vercel.app',
-//         process.env.FRONTEND_URL
-//       ].filter(Boolean)
-//     : ['http://localhost:3000', 'http://localhost:3001'],
-//   credentials: true
-// }));
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        'https://sd-resume-builder.vercel.app',
+        process.env.FRONTEND_URL
+      ].filter(Boolean)
+    : ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true
+}));
+
 // app.use(cors({
 //   origin: '*',
 //   credentials: false,
