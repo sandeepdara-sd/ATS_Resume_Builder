@@ -5,6 +5,28 @@ export const generateResumeHTML = (resumeData) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
+  // Helper function to format links with placeholders
+  const formatLink = (url, type) => {
+    if (!url) return '';
+    
+    const cleanUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    
+    switch (type) {
+      case 'linkedin':
+        return cleanUrl.includes('linkedin.com') ? 
+          cleanUrl.replace('linkedin.com/in/', '').replace('linkedin.com/', '') : 
+          cleanUrl;
+      case 'github':
+        return cleanUrl.includes('github.com') ? 
+          cleanUrl.replace('github.com/', '') : 
+          cleanUrl;
+      case 'website':
+        return cleanUrl;
+      default:
+        return cleanUrl;
+    }
+  };
+
   // Calculate dynamic spacing and font sizes based on content
   const calculateDynamicSpacing = () => {
     let contentSections = 0;
@@ -73,6 +95,7 @@ export const generateResumeHTML = (resumeData) => {
           padding: 15mm;
           background: white;
           min-height: 297mm;
+          page-break-inside: avoid;
         }
         
         .header {
@@ -80,6 +103,7 @@ export const generateResumeHTML = (resumeData) => {
           margin-bottom: ${spacing.baseSpacing};
           border-bottom: 2px solid #e2e8f0;
           padding-bottom: ${spacing.itemSpacing};
+          page-break-inside: avoid;
         }
         
         .name {
@@ -119,6 +143,7 @@ export const generateResumeHTML = (resumeData) => {
         
         .section {
           margin-bottom: ${spacing.baseSpacing};
+          page-break-inside: avoid;
         }
         
         .section-title {
@@ -129,10 +154,12 @@ export const generateResumeHTML = (resumeData) => {
           letter-spacing: 1px;
           margin-bottom: ${spacing.itemSpacing};
           line-height: 1.2;
+          page-break-after: avoid;
         }
         
         .section-item {
           margin-bottom: ${spacing.itemSpacing};
+          page-break-inside: avoid;
         }
         
         .section-item:last-child {
@@ -144,6 +171,7 @@ export const generateResumeHTML = (resumeData) => {
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 6px;
+          page-break-inside: avoid;
         }
         
         .item-title {
@@ -220,6 +248,23 @@ export const generateResumeHTML = (resumeData) => {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+          
+          .section {
+            page-break-inside: avoid;
+          }
+          
+          .section-item {
+            page-break-inside: avoid;
+          }
+          
+          .item-header {
+            page-break-inside: avoid;
+          }
+        }
+        
+        @page {
+          margin: 10mm;
+          size: A4;
         }
       </style>
     </head>
@@ -236,9 +281,9 @@ export const generateResumeHTML = (resumeData) => {
           </div>
           
           <div class="links">
-            ${resumeData.personalDetails?.linkedin ? `<span class="link-item">LinkedIn: ${resumeData.personalDetails.linkedin.replace('https://', '')}</span>` : ''}
-            ${resumeData.personalDetails?.github ? `<span class="link-item">GitHub: ${resumeData.personalDetails.github.replace('https://', '')}</span>` : ''}
-            ${resumeData.personalDetails?.website ? `<span class="link-item">Portfolio: ${resumeData.personalDetails.website.replace('https://', '')}</span>` : ''}
+            ${resumeData.personalDetails?.linkedin ? `<span class="link-item">LinkedIn: ${formatLink(resumeData.personalDetails.linkedin, 'linkedin')}</span>` : ''}
+            ${resumeData.personalDetails?.github ? `<span class="link-item">GitHub: ${formatLink(resumeData.personalDetails.github, 'github')}</span>` : ''}
+            ${resumeData.personalDetails?.website ? `<span class="link-item">Portfolio: ${formatLink(resumeData.personalDetails.website, 'website')}</span>` : ''}
           </div>
         </div>
 
@@ -292,6 +337,7 @@ export const generateResumeHTML = (resumeData) => {
               </div>
               <div class="item-description">${project.description}</div>
               ${project.technologies ? `<div class="item-location"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
+              ${project.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(project.link, 'website')}</div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -310,7 +356,9 @@ export const generateResumeHTML = (resumeData) => {
                 </div>
                 <div class="item-date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
               </div>
+              ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
               ${edu.gpa ? `<div class="item-location"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
+              ${edu.achievements ? `<div class="item-description">${edu.achievements}</div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -324,7 +372,9 @@ export const generateResumeHTML = (resumeData) => {
             <div class="section-item">
               <div class="item-title">${achievement.title}</div>
               ${achievement.organization ? `<div class="item-subtitle">${achievement.organization}</div>` : ''}
+              ${achievement.date ? `<div class="item-location">${formatDate(achievement.date)}</div>` : ''}
               ${achievement.description ? `<div class="item-description">${achievement.description}</div>` : ''}
+              ${achievement.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(achievement.link, 'website')}</div>` : ''}
             </div>
           `).join('')}
         </div>

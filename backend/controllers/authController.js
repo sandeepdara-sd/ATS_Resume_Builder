@@ -6,13 +6,27 @@ import PasswordReset from '../models/PasswordReset.js';
 import admin, { canVerifyFirebaseTokens } from '../config/firebase.js';
 import nodemailer from 'nodemailer';
 
-// Email configuration
+// Email configuration with better error handling
 const createEmailTransporter = () => {
-  return nodemailer.createTransport({
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
+  
+  if (!emailUser || !emailPass) {
+    console.log('⚠️ Email credentials not configured');
+    return null;
+  }
+
+  return nodemailer.createTransporter({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
-      user: process.env.EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.EMAIL_PASS || 'your-app-password'
+      user: emailUser,
+      pass: emailPass
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   });
 };
@@ -128,20 +142,28 @@ export const forgotPassword = async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
 
     // Check if email credentials are configured
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const transporter = createEmailTransporter();
+    
+    if (!transporter) {
       console.log('⚠️ Email credentials not configured. Reset URL:', resetUrl);
       return res.json({ 
-        message: 'Password reset link generated (check server logs for URL)',
+        message: 'Password reset link generated (email service not configured)',
         email: email,
         resetUrl: resetUrl // Remove this in production
       });
     }
 
     try {
+      // Verify transporter configuration
+      await transporter.verify();
+      console.log('✅ Email transporter verified successfully');
+
       // Send email
-      const transporter = createEmailTransporter();
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'noreply@resumebuilder.com',
+        from: {
+          name: 'ATS Resume Builder',
+          address: process.env.EMAIL_USER
+        },
         to: email,
         subject: 'Password Reset Request - ATS Resume Builder',
         html: `
@@ -208,19 +230,25 @@ export const forgotPassword = async (req, res) => {
         `
       };
 
-      await transporter.sendMail(mailOptions);
-      console.log('✅ Password reset email sent to:', email);
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Password reset email sent successfully:', info.messageId);
+
+      res.json({ 
+        message: 'Password reset email sent successfully',
+        email: email 
+      });
 
     } catch (emailError) {
       console.error('❌ Failed to send email:', emailError);
-      // Still return success but log the URL for development
       console.log('🔗 Password reset URL (for development):', resetUrl);
+      
+      // Return success but mention email issue
+      res.json({ 
+        message: 'Password reset link generated. Please check server logs for the reset URL.',
+        email: email,
+        resetUrl: resetUrl // Remove this in production
+      });
     }
-
-    res.json({ 
-      message: 'Password reset email sent successfully',
-      email: email 
-    });
 
   } catch (error) {
     console.error('❌ Forgot password error:', error);

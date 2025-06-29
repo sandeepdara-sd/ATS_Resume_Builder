@@ -33,7 +33,7 @@ setTimeout(async () => {
   }
 }, 2000);
 
-// FIXED CORS Configuration
+// CORS Configuration - More permissive for development
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -49,14 +49,20 @@ const corsOptions = {
           'http://localhost:3000', 
           'http://localhost:3001',
           'http://127.0.0.1:3000',
-          'http://127.0.0.1:3001'
+          'http://127.0.0.1:3001',
+          'https://sd-resume-builder.vercel.app' // Allow production frontend in development
         ];
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log(`❌ CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -76,17 +82,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Alternative: If you want to allow all origins temporarily for testing
-// ONLY USE THIS FOR TESTING - NOT RECOMMENDED FOR PRODUCTION
-/*
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
-*/
 
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
@@ -121,11 +116,12 @@ app.use((req, res, next) => {
         'http://localhost:3000', 
         'http://localhost:3001',
         'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001'
+        'http://127.0.0.1:3001',
+        'https://sd-resume-builder.vercel.app'
       ];
 
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
+  if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    res.header('Access-Control-Allow-Origin', origin || '*');
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -165,13 +161,14 @@ app.get('/api/health', async (req, res) => {
       mongodb: mongoStatus ? 'Connected' : 'Disconnected',
       firebase: 'Initialized',
       ai: 'Available',
-      admin: 'Available'
+      admin: 'Available',
+      email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'
     },
     version: '2.0.0',
     cors: {
       allowedOrigins: process.env.NODE_ENV === 'production' 
         ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
-        : ['http://localhost:3000', 'http://localhost:3001']
+        : ['http://localhost:3000', 'http://localhost:3001', 'https://sd-resume-builder.vercel.app']
     }
   });
 });
@@ -206,6 +203,7 @@ app.get('/api', (req, res) => {
       ],
       admin: [
         'POST /api/admin/login',
+        'POST /api/admin/create-initial-admin',
         'GET /api/admin/dashboard/stats',
         'GET /api/admin/users',
         'GET /api/admin/resumes',
@@ -290,15 +288,17 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
+const PORT = process.env.PORT || 5000;
 
-const server = app.listen(5000, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server with Admin Dashboard is ready on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔒 CORS allowed origins:`, process.env.NODE_ENV === 'production' 
     ? ['https://sd-resume-builder.vercel.app', process.env.FRONTEND_URL].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:3001']
+    : ['http://localhost:3000', 'http://localhost:3001', 'https://sd-resume-builder.vercel.app']
   );
+  console.log(`📧 Email service: ${process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'}`);
 });
 
 // Handle server errors

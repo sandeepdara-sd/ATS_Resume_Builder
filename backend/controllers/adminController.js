@@ -13,13 +13,18 @@ export const createInitialAdmin = async (req, res) => {
     // Use a secret key to prevent unauthorized admin creation
     const expectedSecret = process.env.ADMIN_CREATION_SECRET || 'create-admin-2024';
     
+    console.log('🔍 Admin creation attempt with secret:', secretKey);
+    console.log('🔍 Expected secret:', expectedSecret);
+    
     if (secretKey !== expectedSecret) {
+      console.log('❌ Invalid secret key provided');
       return res.status(403).json({ error: 'Invalid secret key' });
     }
 
     // Check if admin already exists
     const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
     if (existingAdmin) {
+      console.log('⚠️ Admin already exists');
       return res.status(400).json({ 
         error: 'Admin already exists',
         message: 'Admin user already created. Use email: admin@resumebuilder.com, password: admin123'
@@ -60,6 +65,8 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log('🔍 Admin login attempt for:', email);
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -67,12 +74,16 @@ export const adminLogin = async (req, res) => {
     // Find admin by email
     const admin = await Admin.findOne({ email, isActive: true });
     if (!admin) {
+      console.log('❌ Admin not found or inactive:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    console.log('🔍 Admin found, checking password...');
 
     // Check password
     const isValidPassword = await admin.comparePassword(password);
     if (!isValidPassword) {
+      console.log('❌ Invalid password for admin:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

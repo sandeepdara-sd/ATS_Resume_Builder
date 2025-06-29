@@ -11,15 +11,21 @@ dotenv.config();
 const createAdmin = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    const mongoURI = process.env.MONGODB_URI;
+    if (!mongoURI) {
+      console.error('❌ MONGODB_URI environment variable is not set');
+      process.exit(1);
+    }
+
+    await mongoose.connect(mongoURI);
+    console.log('✅ Connected to MongoDB');
 
     // Check if admin already exists
     const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
     if (existingAdmin) {
-      console.log('Admin already exists!');
-      console.log('Email: admin@resumebuilder.com');
-      console.log('Password: admin123');
+      console.log('⚠️ Admin already exists!');
+      console.log('📧 Email: admin@resumebuilder.com');
+      console.log('🔑 Password: admin123');
       process.exit(0);
     }
 

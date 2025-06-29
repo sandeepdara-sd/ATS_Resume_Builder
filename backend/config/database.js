@@ -2,22 +2,25 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    
     const mongoURI = process.env.MONGODB_URI;
     
-    console.log('🔄 Attempting to connect to MongoDB...');
-    // console.log('📍 Database URI:', mongoURI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide credentials in logs
+    if (!mongoURI) {
+      console.error('❌ MONGODB_URI environment variable is not set');
+      process.exit(1);
+    }
     
-    const conn = await mongoose.connect(mongoURI);
+    console.log('🔄 Attempting to connect to MongoDB...');
+    
+    const conn = await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, 
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10, 
+      heartbeatFrequencyMS: 10000, 
+    });
 
-    //  {
-    //   useNewUrlParser: true,
-    //   useUnifiedTopology: true,
-    //   serverSelectionTimeoutMS: 10000, 
-    //   socketTimeoutMS: 45000,
-    //   maxPoolSize: 10, 
-    //   heartbeatFrequencyMS: 10000, 
-    // }
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
     // Handle connection events
     mongoose.connection.on('error', (err) => {
@@ -49,11 +52,12 @@ const connectDB = async () => {
       code: error.code
     });
     
-    // Always continue in development mode, even without MongoDB
-    console.log('⚠️ Continuing without MongoDB - some features may not work');
-    console.log('⚠️ Please check your MongoDB connection string and network access');
+    // Exit process on connection failure in production
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
     
-    // Don't exit the process - let the server start without MongoDB
+    console.log('⚠️ Continuing without MongoDB - some features may not work');
     return null;
   }
 };

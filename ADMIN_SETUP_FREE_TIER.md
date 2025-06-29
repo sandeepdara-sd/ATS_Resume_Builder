@@ -93,6 +93,7 @@ After successful creation:
 ### If you get "Invalid secret key" error:
 - Make sure you're using the correct secret: `create-admin-2024`
 - Check for typos in the JSON body
+- Verify the `ADMIN_CREATION_SECRET` environment variable is set correctly in Render
 
 ## 📝 Environment Variables for Render
 
@@ -102,7 +103,11 @@ Make sure these are set in your Render service:
 MONGODB_URI=your-mongodb-atlas-connection-string
 JWT_SECRET=your-jwt-secret-key
 ADMIN_CREATION_SECRET=create-admin-2024
-# ... other environment variables
+GEMINI_API_KEY=your-gemini-api-key
+EMAIL_USER=your-gmail-address@gmail.com
+EMAIL_PASS=your-gmail-app-password
+FRONTEND_URL=https://your-vercel-app.vercel.app
+NODE_ENV=production
 ```
 
 ## ✅ Next Steps
