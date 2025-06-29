@@ -21,7 +21,7 @@ const createEmailTransporter = () => {
   console.log('📧 Creating email transporter with:', emailUser);
 
   // FIXED: Simplified Gmail configuration that works better
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
     port: 587,
