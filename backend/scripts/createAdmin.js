@@ -3,38 +3,44 @@
 
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import Admin from '../models/Admin.js';
 import dotenv from 'dotenv';
+import Admin from '../models/Admin.js';
 
 dotenv.config();
 
 const createAdmin = async () => {
   try {
-    // Connect to MongoDB
+    // Load environment variables
     const mongoURI = process.env.MONGODB_URI;
-    if (!mongoURI) {
-      console.error('❌ MONGODB_URI environment variable is not set');
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminName = process.env.ADMIN_NAME;
+
+    // Validate environment variables
+    if (!mongoURI || !adminEmail || !adminPassword || !adminName) {
+      console.error('❌ MONGODB_URI, ADMIN_EMAIL, ADMIN_PASSWORD, or ADMIN_NAME is missing in .env');
       process.exit(1);
     }
 
+    // Connect to MongoDB
     console.log('🔄 Connecting to MongoDB...');
     await mongoose.connect(mongoURI);
     console.log('✅ Connected to MongoDB');
 
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email: 'admin@resumebuilder.com' });
+    const existingAdmin = await Admin.findOne({ email: adminEmail });
     if (existingAdmin) {
       console.log('⚠️ Admin already exists!');
-      console.log('📧 Email: admin@resumebuilder.com');
-      console.log('🔑 Password: admin123');
+      console.log(`📧 Email: ${adminEmail}`);
+      console.log(`🔑 Password: ${adminPassword}`);
       process.exit(0);
     }
 
     // Create admin user
     const adminData = {
-      email: 'admin@resumebuilder.com',
-      password: 'admin123', // This will be hashed by the pre-save middleware
-      name: 'Super Admin',
+      email: adminEmail,
+      password: adminPassword, // Will be hashed by pre-save middleware
+      name: adminName,
       role: 'super-admin',
       permissions: ['users', 'resumes', 'feedback', 'analytics', 'settings'],
       isActive: true
@@ -44,10 +50,10 @@ const createAdmin = async () => {
     await admin.save();
 
     console.log('✅ Admin user created successfully!');
-    console.log('📧 Email: admin@resumebuilder.com');
-    console.log('🔑 Password: admin123');
+    console.log(`📧 Email: ${adminEmail}`);
+    console.log(`🔑 Password: ${adminPassword}`);
     console.log('🔐 Role: super-admin');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error creating admin:', error);
