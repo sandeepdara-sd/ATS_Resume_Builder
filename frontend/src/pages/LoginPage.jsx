@@ -193,7 +193,7 @@ function LoginPage() {
           py: 4,
         }}
       >
-        <Container maxWidth="sm" sx={{marginTop:{5}}}>
+        <Container maxWidth="sm" sx={{marginTop:5}}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
