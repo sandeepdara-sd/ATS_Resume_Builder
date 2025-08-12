@@ -55,12 +55,14 @@ export function AuthProvider({ children }) {
           }
           
           // Set user data
-          setUser({
+          const userData = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL
-          });
+          };
+          
+          setUser(userData);
           
           // Store token for API calls
           setToken(idToken);
@@ -73,12 +75,14 @@ export function AuthProvider({ children }) {
           console.error('❌ Error getting user token:', error);
           
           // Still set user data even if token operations fail
-          setUser({
+          const userData = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL
-          });
+          };
+          
+          setUser(userData);
         }
       } else {
         console.log('🔄 User signed out');
@@ -103,9 +107,58 @@ export function AuthProvider({ children }) {
       // console.log('🔄 Attempting login with email:', email);
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log('✅ Login successful');
-      return result;
+      
+      // Wait for the user state to be set by onAuthStateChanged
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Login timeout - user state not updated'));
+        }, 10000); // 10 second timeout
+        
+        const checkUserState = () => {
+          if (user && user.uid === result.user.uid) {
+            clearTimeout(timeout);
+            resolve(result);
+          } else {
+            // Check again in 100ms
+            setTimeout(checkUserState, 100);
+          }
+        };
+        
+        checkUserState();
+      });
     } catch (error) {
       console.error('❌ Login failed:', error);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      console.log('🔄 Attempting Google login');
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      console.log('✅ Google login successful');
+      
+      // Wait for the user state to be set by onAuthStateChanged
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Google login timeout - user state not updated'));
+        }, 10000); // 10 second timeout
+        
+        const checkUserState = () => {
+          if (user && user.uid === result.user.uid) {
+            clearTimeout(timeout);
+            resolve(result);
+          } else {
+            // Check again in 100ms
+            setTimeout(checkUserState, 100);
+          }
+        };
+        
+        checkUserState();
+      });
+    } catch (error) {
+      console.error('❌ Google login failed:', error);
       throw error;
     }
   };
@@ -115,7 +168,25 @@ export function AuthProvider({ children }) {
       // console.log('🔄 Attempting signup with email:', email);
       const result = await createUserWithEmailAndPassword(auth, email, password);
       console.log('✅ Signup successful');
-      return result;
+      
+      // Wait for the user state to be set by onAuthStateChanged
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Signup timeout - user state not updated'));
+        }, 10000); // 10 second timeout
+        
+        const checkUserState = () => {
+          if (user && user.uid === result.user.uid) {
+            clearTimeout(timeout);
+            resolve(result);
+          } else {
+            // Check again in 100ms
+            setTimeout(checkUserState, 100);
+          }
+        };
+        
+        checkUserState();
+      });
     } catch (error) {
       console.error('❌ Signup failed:', error);
       throw error;
@@ -133,17 +204,6 @@ export function AuthProvider({ children }) {
       console.log('✅ Logout successful');
     } catch (error) {
       console.error('❌ Logout failed:', error);
-      throw error;
-    }
-  };
-
-  const loginWithGoogle = () => {
-    try {
-      console.log('🔄 Attempting Google login');
-      const provider = new GoogleAuthProvider();
-      return signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('❌ Google login failed:', error);
       throw error;
     }
   };
