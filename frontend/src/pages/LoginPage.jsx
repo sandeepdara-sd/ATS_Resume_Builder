@@ -13,7 +13,8 @@ import {
   IconButton,
   AppBar,
   Toolbar,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import {
   Rocket,
@@ -26,8 +27,6 @@ import {
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import LoadingSpinner from '../components/LoadingSpinner';
- 
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -35,7 +34,6 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false); 
 
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -47,10 +45,8 @@ function LoginPage() {
 
     try {
       await login(email, password);
-      setLoginSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000); 
+      // Don't use setTimeout - navigate immediately after successful login
+      navigate('/dashboard');
     } catch (error) {
       console.log(error);
       setError('Failed to log in. Please check your credentials.');
@@ -64,18 +60,47 @@ function LoginPage() {
 
     try {
       await loginWithGoogle();
-      setLoginSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
+      // Don't use setTimeout - navigate immediately after successful login
+      navigate('/dashboard');
     } catch (error) {
       setError('Failed to log in with Google.');
       setLoading(false);
     }
   };
 
-  if (loginSuccess) {
-    return <LoadingSpinner/>;
+  // Show loading state while authenticating
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Paper
+          elevation={24}
+          sx={{
+            p: 6,
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            textAlign: 'center',
+            maxWidth: 400
+          }}
+        >
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+            Signing you in...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please wait while we authenticate your account
+          </Typography>
+        </Paper>
+      </Box>
+    );
   }
 
   return (
@@ -309,7 +334,7 @@ function LoginPage() {
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   }}
                 >
-                  {loading ? 'Signing In...' : 'Sign In'}
+                  Sign In
                 </Button>
               </form>
 
