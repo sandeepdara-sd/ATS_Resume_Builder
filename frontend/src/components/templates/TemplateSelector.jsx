@@ -157,28 +157,26 @@ function TemplateSelector({ selectedTemplate, onTemplateSelect, resumeData }) {
                       {template.icon}
                     </Box>
                     <Box>
-                    <Chip
-                      label="ATS Verified"
-                      size="small"
-                      color="success"
-                      sx={{ ml: 1, fontSize: '0.6rem', height: 20 }}
-                    />
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {template.name}
                       </Typography>
-                      <Chip
-                        label={template.category}
-                        size="small"
-                        sx={{
-                        sx={{ 
-                          fontSize: '0.7rem',
-                          color: feature.includes('ATS') ? 'success.main' : 'default',
-                          borderColor: feature.includes('ATS') ? 'success.main' : 'default'
-                        }}
-                          color: template.color,
-                          fontWeight: 500
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Chip
+                          label={template.category}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${template.color}15`,
+                            color: template.color,
+                            fontWeight: 500
+                          }}
+                        />
+                        <Chip
+                          label="ATS Verified"
+                          size="small"
+                          color="success"
+                          sx={{ fontSize: '0.6rem', height: 20 }}
+                        />
+                      </Box>
                     </Box>
                   </Box>
 
@@ -202,7 +200,11 @@ function TemplateSelector({ selectedTemplate, onTemplateSelect, resumeData }) {
                           label={feature}
                           size="small"
                           variant="outlined"
-                          sx={{ fontSize: '0.7rem' }}
+                          sx={{ 
+                            fontSize: '0.7rem',
+                            color: feature.includes('ATS') ? 'success.main' : 'default',
+                            borderColor: feature.includes('ATS') ? 'success.main' : 'default'
+                          }}
                         />
                       ))}
                     </Box>
