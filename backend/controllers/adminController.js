@@ -267,7 +267,12 @@ export const getUserDetails = async (req, res) => {
 
     const [resumes, feedback] = await Promise.all([
       Resume.find({ userId }).sort({ createdAt: -1 }),
-      Feedback.find({ firebaseUid: user.firebaseUid }).sort({ createdAt: -1 })
+      Feedback.find({ 
+        $or: [
+          { firebaseUid: user.firebaseUid },
+          { email: user.email }
+        ]
+      }).sort({ createdAt: -1 })
     ]);
 
     res.json({
@@ -300,7 +305,12 @@ export const deleteUser = async (req, res) => {
     // Delete user's resumes and feedback
     await Promise.all([
       Resume.deleteMany({ userId }),
-      Feedback.deleteMany({ firebaseUid: user.firebaseUid }),
+      Feedback.deleteMany({ 
+        $or: [
+          { firebaseUid: user.firebaseUid },
+          { email: user.email }
+        ]
+      }),
       User.findByIdAndDelete(userId)
     ]);
 
@@ -393,7 +403,12 @@ export const getAllFeedback = async (req, res) => {
     // Get user details for each feedback
     const feedbackWithUsers = await Promise.all(
       feedback.map(async (fb) => {
-        const user = await User.findOne({ firebaseUid: fb.firebaseUid })
+        const user = await User.findOne({ 
+          $or: [
+            { firebaseUid: fb.firebaseUid },
+            { email: fb.email }
+          ]
+        })
           .select('email displayName photoURL');
         return {
           ...fb.toObject(),

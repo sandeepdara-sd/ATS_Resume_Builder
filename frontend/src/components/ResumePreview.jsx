@@ -111,10 +111,15 @@ function ResumePreview({
           <Paper 
             sx={{ 
               minHeight: '297mm',
+              width: '210mm',
+              maxWidth: '210mm',
               backgroundColor: 'white',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               overflow: 'hidden',
-              borderRadius: 2
+              borderRadius: 2,
+              margin: '0 auto',
+              transform: 'scale(0.9)',
+              transformOrigin: 'top center'
             }}
           >
             {/* Render the selected template */}

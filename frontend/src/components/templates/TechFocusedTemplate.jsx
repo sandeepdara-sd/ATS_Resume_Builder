@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Divider } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 function TechFocusedTemplate({ resumeData }) {
   const formatDate = (dateString) => {
@@ -8,7 +8,7 @@ function TechFocusedTemplate({ resumeData }) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
-  // Categorize skills for better organization
+  // Categorize skills for better ATS parsing
   const categorizeSkills = (skills) => {
     const categories = {
       'Programming Languages': [],
@@ -17,9 +17,9 @@ function TechFocusedTemplate({ resumeData }) {
       'Other Skills': []
     };
 
-    const programmingKeywords = ['javascript', 'python', 'java', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'typescript'];
-    const frameworkKeywords = ['react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'laravel', 'rails'];
-    const toolKeywords = ['git', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'jenkins', 'webpack', 'babel', 'npm', 'yarn'];
+    const programmingKeywords = ['javascript', 'python', 'java', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'typescript', 'sql', 'html', 'css'];
+    const frameworkKeywords = ['react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'laravel', 'rails', 'bootstrap', 'jquery'];
+    const toolKeywords = ['git', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'jenkins', 'webpack', 'babel', 'npm', 'yarn', 'mongodb', 'mysql', 'postgresql'];
 
     skills.forEach(skill => {
       const lowerSkill = skill.toLowerCase();
@@ -39,27 +39,71 @@ function TechFocusedTemplate({ resumeData }) {
 
   const skillCategories = resumeData.skills ? categorizeSkills(resumeData.skills) : {};
 
+  // Calculate optimal layout
+  const calculateOptimalLayout = () => {
+    let totalSections = 0;
+    let totalItems = 0;
+    
+    if (resumeData.summary) totalSections++;
+    if (resumeData.experience?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.experience.length;
+    }
+    if (resumeData.projects?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.projects.length;
+    }
+    if (resumeData.education?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.education.length;
+    }
+    if (resumeData.skills?.length > 0) totalSections++;
+    if (resumeData.achievements?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.achievements.length;
+    }
+    
+    const isContentDense = totalSections > 6 || totalItems > 12;
+    
+    return {
+      sectionSpacing: isContentDense ? 2 : 2.5,
+      itemSpacing: isContentDense ? 1.25 : 1.75,
+      nameSize: isContentDense ? '1.5rem' : '1.75rem',
+      sectionTitleSize: isContentDense ? '0.875rem' : '1rem',
+      itemTitleSize: isContentDense ? '0.8125rem' : '0.875rem',
+      bodySize: isContentDense ? '0.6875rem' : '0.75rem',
+      smallSize: isContentDense ? '0.625rem' : '0.6875rem',
+      lineHeight: isContentDense ? 1.3 : 1.4
+    };
+  };
+
+  const layout = calculateOptimalLayout();
+
   return (
     <Box
       sx={{
-        fontFamily: '"Fira Code", "Monaco", "Consolas", monospace',
-        lineHeight: 1.6,
-        color: '#2d3748',
-        backgroundColor: 'white',
-        minHeight: '297mm',
-        width: '210mm',
+        fontFamily: '"Arial", "Helvetica", sans-serif',
+        lineHeight: layout.lineHeight,
+        color: '#000000',
+        backgroundColor: '#ffffff',
+        width: '8.5in',
+        maxWidth: '8.5in',
+        minHeight: '11in',
         margin: '0 auto',
-        padding: '20mm',
+        padding: '0.5in',
         boxSizing: 'border-box',
+        fontSize: layout.bodySize,
         '@media print': {
           margin: 0,
-          padding: '15mm',
-          boxShadow: 'none'
+          padding: '0.5in',
+          boxShadow: 'none',
+          width: '8.5in',
+          maxWidth: '8.5in'
         }
       }}
     >
       {/* Header */}
-      <Box sx={{ mb: 4, position: 'relative' }}>
+      <Box sx={{ mb: layout.sectionSpacing, position: 'relative' }}>
         <Box
           sx={{
             position: 'absolute',
@@ -67,68 +111,66 @@ function TechFocusedTemplate({ resumeData }) {
             left: 0,
             width: '4px',
             height: '100%',
-            backgroundColor: '#00d9ff',
-            borderRadius: '2px'
+            backgroundColor: '#000000'
           }}
         />
-        <Box sx={{ pl: 3 }}>
+        <Box sx={{ pl: 2 }}>
           <Typography
-            variant="h3"
+            component="h1"
             sx={{
-              fontWeight: 700,
-              color: '#1a202c',
+              fontWeight: 'bold',
+              color: '#000000',
               mb: 1,
-              fontSize: '2.2rem',
-              fontFamily: '"Inter", sans-serif'
+              fontSize: layout.nameSize,
+              fontFamily: 'inherit'
             }}
           >
             {resumeData.personalDetails?.fullName || 'Your Name'}
           </Typography>
           <Typography
-            variant="h6"
             sx={{
-              color: '#00d9ff',
+              color: '#333333',
               mb: 2,
-              fontSize: '1.1rem',
-              fontWeight: 500,
-              fontFamily: '"Inter", sans-serif'
+              fontSize: layout.bodySize,
+              fontWeight: 'bold',
+              fontFamily: 'inherit'
             }}
           >
             Software Developer
           </Typography>
           
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Box sx={{ mb: 2 }}>
             {resumeData.personalDetails?.email && (
-              <Typography variant="body2" sx={{ color: '#4a5568', fontSize: '0.9rem' }}>
-                📧 {resumeData.personalDetails.email}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
+                Email: {resumeData.personalDetails.email}
               </Typography>
             )}
             {resumeData.personalDetails?.phone && (
-              <Typography variant="body2" sx={{ color: '#4a5568', fontSize: '0.9rem' }}>
-                📱 {resumeData.personalDetails.phone}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
+                Phone: {resumeData.personalDetails.phone}
               </Typography>
             )}
             {resumeData.personalDetails?.location && (
-              <Typography variant="body2" sx={{ color: '#4a5568', fontSize: '0.9rem' }}>
-                📍 {resumeData.personalDetails.location}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize }}>
+                Location: {resumeData.personalDetails.location}
               </Typography>
             )}
           </Box>
           
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
             {resumeData.personalDetails?.github && (
-              <Typography variant="body2" sx={{ color: '#00d9ff', fontSize: '0.85rem' }}>
-                🔗 {resumeData.personalDetails.github.replace('https://', '')}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
+                GitHub: {resumeData.personalDetails.github.replace('https://', '')}
               </Typography>
             )}
             {resumeData.personalDetails?.linkedin && (
-              <Typography variant="body2" sx={{ color: '#00d9ff', fontSize: '0.85rem' }}>
-                💼 {resumeData.personalDetails.linkedin.replace('https://', '')}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
+                LinkedIn: {resumeData.personalDetails.linkedin.replace('https://', '')}
               </Typography>
             )}
             {resumeData.personalDetails?.website && (
-              <Typography variant="body2" sx={{ color: '#00d9ff', fontSize: '0.85rem' }}>
-                🌐 {resumeData.personalDetails.website.replace('https://', '')}
+              <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize }}>
+                Portfolio: {resumeData.personalDetails.website.replace('https://', '')}
               </Typography>
             )}
           </Box>
@@ -137,32 +179,36 @@ function TechFocusedTemplate({ resumeData }) {
 
       {/* Summary */}
       {resumeData.summary && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 2,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
-            ABOUT
+            PROFESSIONAL SUMMARY
           </Typography>
           <Box
             sx={{
-              backgroundColor: '#f7fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '4px',
-              p: 2,
-              fontFamily: '"Inter", sans-serif'
+              border: '1px solid #cccccc',
+              padding: '12px',
+              fontFamily: 'inherit'
             }}
           >
-            <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.7, color: '#4a5568' }}>
+            <Typography 
+              sx={{ 
+                fontSize: layout.bodySize, 
+                lineHeight: 1.5, 
+                color: '#000000',
+                textAlign: 'justify',
+                fontFamily: 'inherit'
+              }}
+            >
               {resumeData.summary}
             </Typography>
           </Box>
@@ -171,58 +217,46 @@ function TechFocusedTemplate({ resumeData }) {
 
       {/* Technical Skills */}
       {resumeData.skills && resumeData.skills.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
             TECHNICAL SKILLS
           </Typography>
           
           {Object.entries(skillCategories).map(([category, skills]) => (
             skills.length > 0 && (
-              <Box key={category} sx={{ mb: 2 }}>
+              <Box key={category} sx={{ mb: 1.5 }}>
                 <Typography
-                  variant="h6"
+                  component="h3"
                   sx={{
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: '#2d3748',
-                    mb: 1,
-                    fontFamily: '"Inter", sans-serif'
+                    fontSize: layout.bodySize,
+                    fontWeight: 'bold',
+                    color: '#000000',
+                    mb: 0.5,
+                    fontFamily: 'inherit'
                   }}
                 >
                   {category}:
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {skills.map((skill, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: 'inline-block',
-                        px: 2,
-                        py: 0.5,
-                        backgroundColor: '#00d9ff',
-                        color: 'white',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        fontFamily: '"Fira Code", monospace'
-                      }}
-                    >
-                      {skill}
-                    </Box>
-                  ))}
-                </Box>
+                <Typography 
+                  sx={{
+                    fontSize: layout.bodySize,
+                    color: '#000000',
+                    lineHeight: 1.4,
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  {skills.join(' • ')}
+                </Typography>
               </Box>
             )
           ))}
@@ -231,24 +265,22 @@ function TechFocusedTemplate({ resumeData }) {
 
       {/* Experience */}
       {resumeData.experience && resumeData.experience.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
-            EXPERIENCE
+            PROFESSIONAL EXPERIENCE
           </Typography>
           {resumeData.experience.map((exp, index) => (
-            <Box key={index} sx={{ mb: 3, position: 'relative' }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing, position: 'relative' }}>
               <Box
                 sx={{
                   position: 'absolute',
@@ -256,39 +288,67 @@ function TechFocusedTemplate({ resumeData }) {
                   top: 0,
                   width: '2px',
                   height: '100%',
-                  backgroundColor: '#e2e8f0'
+                  backgroundColor: '#cccccc'
                 }}
               />
-              <Box sx={{ pl: 3 }}>
+              <Box sx={{ pl: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: '#1a202c', fontFamily: '"Inter", sans-serif' }}>
+                    <Typography 
+                      component="h3"
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        fontSize: layout.itemTitleSize, 
+                        color: '#000000',
+                        fontFamily: 'inherit'
+                      }}
+                    >
                       {exp.jobTitle}
                     </Typography>
-                    <Typography variant="subtitle1" sx={{ color: '#00d9ff', fontWeight: 500, fontSize: '0.9rem', fontFamily: '"Inter", sans-serif' }}>
+                    <Typography 
+                      sx={{ 
+                        color: '#333333', 
+                        fontWeight: 'bold', 
+                        fontSize: layout.bodySize,
+                        fontFamily: 'inherit'
+                      }}
+                    >
                       {exp.company}
                     </Typography>
                   </Box>
-                  <Box
+                  <Typography
                     sx={{
-                      backgroundColor: '#00d9ff',
-                      color: 'white',
-                      px: 2,
-                      py: 0.5,
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 500
+                      color: '#666666',
+                      fontSize: layout.smallSize,
+                      fontWeight: 'normal',
+                      fontFamily: 'inherit'
                     }}
                   >
                     {formatDate(exp.startDate)} - {exp.currentJob ? 'Present' : formatDate(exp.endDate)}
-                  </Box>
+                  </Typography>
                 </Box>
                 {exp.location && (
-                  <Typography variant="body2" sx={{ color: '#718096', mb: 1, fontSize: '0.85rem' }}>
-                    📍 {exp.location}
+                  <Typography 
+                    sx={{ 
+                      color: '#666666', 
+                      mb: 1, 
+                      fontSize: layout.smallSize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Location: {exp.location}
                   </Typography>
                 )}
-                <Typography variant="body2" sx={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#4a5568', whiteSpace: 'pre-line', fontFamily: '"Inter", sans-serif' }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    lineHeight: layout.lineHeight, 
+                    color: '#000000', 
+                    whiteSpace: 'pre-line',
+                    textAlign: 'justify',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {exp.responsibilities}
                 </Typography>
               </Box>
@@ -299,62 +359,79 @@ function TechFocusedTemplate({ resumeData }) {
 
       {/* Projects */}
       {resumeData.projects && resumeData.projects.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
             PROJECTS
           </Typography>
           {resumeData.projects.map((project, index) => (
-            <Box key={index} sx={{ mb: 3 }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: '#1a202c', fontFamily: '"Inter", sans-serif' }}>
-                  🚀 {project.name}
+                <Typography 
+                  component="h3"
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    fontSize: layout.itemTitleSize, 
+                    color: '#000000',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  {project.name}
                 </Typography>
                 {project.duration && (
-                  <Typography variant="body2" sx={{ color: '#718096', fontSize: '0.8rem' }}>
+                  <Typography 
+                    sx={{ 
+                      color: '#666666', 
+                      fontSize: layout.smallSize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {project.duration}
                   </Typography>
                 )}
               </Box>
-              <Typography variant="body2" sx={{ fontSize: '0.85rem', lineHeight: 1.6, color: '#4a5568', mb: 1, fontFamily: '"Inter", sans-serif' }}>
+              <Typography 
+                sx={{ 
+                  fontSize: layout.bodySize, 
+                  lineHeight: layout.lineHeight, 
+                  color: '#000000', 
+                  mb: 1,
+                  textAlign: 'justify',
+                  fontFamily: 'inherit'
+                }}
+              >
                 {project.description}
               </Typography>
               {project.technologies && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                  {project.technologies.split(',').map((tech, techIndex) => (
-                    <Box
-                      key={techIndex}
-                      sx={{
-                        display: 'inline-block',
-                        px: 1.5,
-                        py: 0.25,
-                        backgroundColor: '#f7fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '3px',
-                        fontSize: '0.7rem',
-                        color: '#4a5568',
-                        fontFamily: '"Fira Code", monospace'
-                      }}
-                    >
-                      {tech.trim()}
-                    </Box>
-                  ))}
-                </Box>
+                <Typography 
+                  sx={{
+                    fontSize: layout.smallSize,
+                    color: '#000000',
+                    mb: 0.5,
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <strong>Technologies:</strong> {project.technologies}
+                </Typography>
               )}
               {project.link && (
-                <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#00d9ff' }}>
-                  🔗 {project.link}
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.smallSize, 
+                    color: '#000000',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <strong>Link:</strong> {project.link}
                 </Typography>
               )}
             </Box>
@@ -364,39 +441,64 @@ function TechFocusedTemplate({ resumeData }) {
 
       {/* Education */}
       {resumeData.education && resumeData.education.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
             EDUCATION
           </Typography>
           {resumeData.education.map((edu, index) => (
-            <Box key={index} sx={{ mb: 2 }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: '#1a202c', fontFamily: '"Inter", sans-serif' }}>
-                    🎓 {edu.degree}
+                  <Typography 
+                    component="h3"
+                    sx={{ 
+                      fontWeight: 'bold', 
+                      fontSize: layout.itemTitleSize, 
+                      color: '#000000',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {edu.degree}
                   </Typography>
-                  <Typography variant="subtitle1" sx={{ color: '#00d9ff', fontWeight: 500, fontSize: '0.9rem', fontFamily: '"Inter", sans-serif' }}>
+                  <Typography 
+                    sx={{ 
+                      color: '#333333', 
+                      fontWeight: 'bold', 
+                      fontSize: layout.bodySize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {edu.institution}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ color: '#718096', fontSize: '0.8rem' }}>
+                <Typography 
+                  sx={{ 
+                    color: '#666666', 
+                    fontSize: layout.smallSize,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
                 </Typography>
               </Box>
               {edu.gpa && (
-                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#4a5568', fontFamily: '"Inter", sans-serif' }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    color: '#000000',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   GPA: {edu.gpa}
                 </Typography>
               )}
@@ -409,32 +511,52 @@ function TechFocusedTemplate({ resumeData }) {
       {resumeData.achievements && resumeData.achievements.length > 0 && (
         <Box>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#1a202c',
-              fontSize: '1.1rem',
-              fontFamily: '"Inter", sans-serif',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '20px', height: '2px', backgroundColor: '#00d9ff', mr: 2 }} />
             ACHIEVEMENTS
           </Typography>
           {resumeData.achievements.map((achievement, index) => (
-            <Box key={index} sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#1a202c', fontFamily: '"Inter", sans-serif' }}>
-                🏆 {achievement.title}
+            <Box key={index} sx={{ mb: layout.itemSpacing }}>
+              <Typography 
+                component="h3"
+                sx={{ 
+                  fontWeight: 'bold', 
+                  fontSize: layout.itemTitleSize, 
+                  color: '#000000',
+                  fontFamily: 'inherit'
+                }}
+              >
+                {achievement.title}
               </Typography>
               {achievement.organization && (
-                <Typography variant="body2" sx={{ color: '#00d9ff', fontSize: '0.85rem', mb: 0.5, fontFamily: '"Inter", sans-serif' }}>
+                <Typography 
+                  sx={{ 
+                    color: '#333333', 
+                    fontSize: layout.bodySize, 
+                    mb: 0.5,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {achievement.organization}
                 </Typography>
               )}
               {achievement.description && (
-                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#4a5568', fontFamily: '"Inter", sans-serif' }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    color: '#000000',
+                    textAlign: 'justify',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {achievement.description}
                 </Typography>
               )}

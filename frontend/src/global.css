@@ -4,3 +4,33 @@
   transform-origin: top center;
   width: 111.11%; /* (1 / 0.9) * 100% to prevent layout shrinking */
 }
+
+/* ATS-friendly print styles */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  body {
+    font-family: Arial, Helvetica, sans-serif !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+  
+  .resume-container {
+    width: 8.5in !important;
+    max-width: 8.5in !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}
+
+/* Ensure consistent rendering across browsers */
+.resume-preview {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

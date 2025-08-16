@@ -5,21 +5,24 @@ export const generateResumeHTML = (resumeData) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
-  // Helper function to format links with placeholders
+  // Helper function to format links - ATS friendly
   const formatLink = (url, type) => {
     if (!url) return '';
     
+    // Remove protocol for cleaner display but keep full URL for ATS parsing
     const cleanUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
     
     switch (type) {
       case 'linkedin':
-        return cleanUrl.includes('linkedin.com') ? 
-          cleanUrl.replace('linkedin.com/in/', '').replace('linkedin.com/', '') : 
-          cleanUrl;
+        if (cleanUrl.includes('linkedin.com')) {
+          return cleanUrl;
+        }
+        return `linkedin.com/in/${cleanUrl}`;
       case 'github':
-        return cleanUrl.includes('github.com') ? 
-          cleanUrl.replace('github.com/', '') : 
-          cleanUrl;
+        if (cleanUrl.includes('github.com')) {
+          return cleanUrl;
+        }
+        return `github.com/${cleanUrl}`;
       case 'website':
         return cleanUrl;
       default:
@@ -27,45 +30,47 @@ export const generateResumeHTML = (resumeData) => {
     }
   };
 
-  // Calculate dynamic spacing and font sizes based on content
-  const calculateDynamicSpacing = () => {
-    let contentSections = 0;
-    
-    if (resumeData.summary) contentSections++;
-    if (resumeData.experience?.length > 0) contentSections++;
-    if (resumeData.projects?.length > 0) contentSections++;
-    if (resumeData.education?.length > 0) contentSections++;
-    if (resumeData.skills?.length > 0) contentSections++;
-    if (resumeData.achievements?.length > 0) contentSections++;
-    if (resumeData.hobbies?.length > 0) contentSections++;
-    
-    const baseSpacing = contentSections <= 4 ? '24px' : contentSections <= 6 ? '18px' : '12px';
-    const itemSpacing = contentSections <= 4 ? '16px' : contentSections <= 6 ? '12px' : '8px';
-    
-    return { baseSpacing, itemSpacing };
-  };
-
-  const getDynamicFontSizes = () => {
+  // Calculate optimal spacing based on content density
+  const calculateOptimalLayout = () => {
+    let totalSections = 0;
     let totalItems = 0;
     
-    if (resumeData.experience) totalItems += resumeData.experience.length;
-    if (resumeData.projects) totalItems += resumeData.projects.length;
-    if (resumeData.education) totalItems += resumeData.education.length;
-    if (resumeData.achievements) totalItems += resumeData.achievements.length;
+    if (resumeData.summary) totalSections++;
+    if (resumeData.experience?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.experience.length;
+    }
+    if (resumeData.projects?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.projects.length;
+    }
+    if (resumeData.education?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.education.length;
+    }
+    if (resumeData.skills?.length > 0) totalSections++;
+    if (resumeData.achievements?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.achievements.length;
+    }
+    if (resumeData.hobbies?.length > 0) totalSections++;
     
-    const isContentHeavy = totalItems > 8;
+    // Determine if content is dense
+    const isContentDense = totalSections > 6 || totalItems > 12;
     
     return {
-      nameSize: isContentHeavy ? '28px' : '32px',
-      sectionTitleSize: isContentHeavy ? '16px' : '18px',
-      itemTitleSize: isContentHeavy ? '14px' : '16px',
-      bodySize: isContentHeavy ? '12px' : '14px',
-      smallSize: isContentHeavy ? '11px' : '12px'
+      sectionSpacing: isContentDense ? '16px' : '20px',
+      itemSpacing: isContentDense ? '10px' : '14px',
+      nameSize: isContentDense ? '24px' : '28px',
+      sectionTitleSize: isContentDense ? '14px' : '16px',
+      itemTitleSize: isContentDense ? '13px' : '14px',
+      bodySize: isContentDense ? '11px' : '12px',
+      smallSize: isContentDense ? '10px' : '11px',
+      lineHeight: isContentDense ? '1.3' : '1.4'
     };
   };
 
-  const spacing = calculateDynamicSpacing();
-  const fonts = getDynamicFontSizes();
+  const layout = calculateOptimalLayout();
 
   return `
     <!DOCTYPE html>
@@ -75,90 +80,109 @@ export const generateResumeHTML = (resumeData) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${resumeData.personalDetails?.fullName || 'Resume'}</title>
       <style>
+        /* ATS-Friendly Reset */
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
         
+        /* ATS-Optimized Body Styles */
         body {
-          font-family: 'Inter', 'Arial', sans-serif;
-          line-height: 1.4;
-          color: #2d3748;
-          background-color: white;
-          font-size: ${fonts.bodySize};
+          font-family: 'Arial', 'Helvetica', sans-serif;
+          font-size: ${layout.bodySize};
+          line-height: ${layout.lineHeight};
+          color: #000000;
+          background-color: #ffffff;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
+        /* Container - ATS Friendly Dimensions */
         .resume-container {
-          max-width: 210mm;
+          width: 8.5in;
+          max-width: 8.5in;
           margin: 0 auto;
-          padding: 15mm;
-          background: white;
-          min-height: 297mm;
-          page-break-inside: avoid;
+          padding: 0.5in;
+          background: #ffffff;
+          min-height: 11in;
+          position: relative;
         }
         
+        /* Header Section - ATS Optimized */
         .header {
           text-align: center;
-          margin-bottom: ${spacing.baseSpacing};
-          border-bottom: 2px solid #e2e8f0;
-          padding-bottom: ${spacing.itemSpacing};
-          page-break-inside: avoid;
+          margin-bottom: ${layout.sectionSpacing};
+          padding-bottom: ${layout.itemSpacing};
+          border-bottom: 1px solid #cccccc;
         }
         
         .name {
-          font-size: ${fonts.nameSize};
-          font-weight: 700;
-          color: #1a202c;
+          font-size: ${layout.nameSize};
+          font-weight: bold;
+          color: #000000;
           margin-bottom: 8px;
-          letter-spacing: -0.5px;
-          line-height: 1.1;
+          letter-spacing: 0.5px;
+          text-transform: none;
+          line-height: 1.2;
         }
         
         .contact-info {
-          display: flex;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
         
         .contact-item {
-          color: #4a5568;
-          font-size: ${fonts.smallSize};
+          color: #333333;
+          font-size: ${layout.smallSize};
+          margin: 0 8px;
+          display: inline;
+        }
+        
+        .contact-item:first-child {
+          margin-left: 0;
         }
         
         .links {
-          display: flex;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 12px;
+          margin-top: 4px;
         }
         
         .link-item {
-          color: #3182ce;
-          font-size: ${fonts.smallSize};
+          color: #000000;
+          font-size: ${layout.smallSize};
+          margin: 0 8px;
+          display: inline;
           text-decoration: none;
         }
         
+        .link-item:first-child {
+          margin-left: 0;
+        }
+        
+        /* Section Styles - ATS Friendly */
         .section {
-          margin-bottom: ${spacing.baseSpacing};
+          margin-bottom: ${layout.sectionSpacing};
           page-break-inside: avoid;
         }
         
-        .section-title {
-          font-size: ${fonts.sectionTitleSize};
-          font-weight: 600;
-          color: #2d3748;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: ${spacing.itemSpacing};
-          line-height: 1.2;
-          page-break-after: avoid;
+        .section:last-child {
+          margin-bottom: 0;
         }
         
+        .section-title {
+          font-size: ${layout.sectionTitleSize};
+          font-weight: bold;
+          color: #000000;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: ${layout.itemSpacing};
+          padding-bottom: 4px;
+          border-bottom: 1px solid #cccccc;
+          line-height: 1.2;
+        }
+        
+        /* Item Styles */
         .section-item {
-          margin-bottom: ${spacing.itemSpacing};
+          margin-bottom: ${layout.itemSpacing};
           page-break-inside: avoid;
         }
         
@@ -167,81 +191,89 @@ export const generateResumeHTML = (resumeData) => {
         }
         
         .item-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
           margin-bottom: 6px;
-          page-break-inside: avoid;
         }
         
         .item-title {
-          font-size: ${fonts.itemTitleSize};
-          font-weight: 600;
-          color: #2d3748;
+          font-size: ${layout.itemTitleSize};
+          font-weight: bold;
+          color: #000000;
           line-height: 1.2;
+          margin-bottom: 2px;
         }
         
         .item-subtitle {
-          color: #3182ce;
-          font-weight: 500;
-          font-size: ${fonts.bodySize};
+          color: #333333;
+          font-weight: bold;
+          font-size: ${layout.bodySize};
           line-height: 1.2;
+          margin-bottom: 2px;
         }
         
         .item-date {
-          color: #718096;
-          font-size: ${fonts.smallSize};
-          font-weight: 500;
+          color: #666666;
+          font-size: ${layout.smallSize};
+          font-weight: normal;
+          float: right;
           line-height: 1.2;
         }
         
         .item-location {
-          color: #718096;
-          font-size: ${fonts.smallSize};
-          margin-bottom: 6px;
+          color: #666666;
+          font-size: ${layout.smallSize};
+          margin-bottom: 4px;
+          font-style: italic;
         }
         
         .item-description {
-          font-size: ${fonts.bodySize};
-          line-height: 1.4;
-          color: #4a5568;
-          white-space: pre-line;
+          font-size: ${layout.bodySize};
+          line-height: ${layout.lineHeight};
+          color: #000000;
+          text-align: justify;
+          margin-top: 4px;
         }
         
+        /* Skills Section - ATS Optimized */
         .skills-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
+          line-height: 1.6;
         }
         
-        .skill-item {
-          display: inline-block;
-          padding: 4px 10px;
-          border: 1px solid #e2e8f0;
-          border-radius: 4px;
-          font-size: ${fonts.smallSize};
-          color: #4a5568;
-          background-color: #f7fafc;
-          line-height: 1.2;
-        }
-        
-        .summary-text {
-          font-size: ${fonts.bodySize};
+        .skills-text {
+          font-size: ${layout.bodySize};
+          color: #000000;
           line-height: 1.5;
-          color: #4a5568;
         }
         
+        /* Summary Text */
+        .summary-text {
+          font-size: ${layout.bodySize};
+          line-height: 1.5;
+          color: #000000;
+          text-align: justify;
+        }
+        
+        /* Hobbies Text */
         .hobbies-text {
-          font-size: ${fonts.bodySize};
+          font-size: ${layout.bodySize};
           line-height: 1.4;
-          color: #4a5568;
+          color: #000000;
         }
         
+        /* Clear floats */
+        .clearfix::after {
+          content: "";
+          display: table;
+          clear: both;
+        }
+        
+        /* Print Optimization */
         @media print {
           .resume-container {
             margin: 0;
-            padding: 10mm;
+            padding: 0.5in;
             box-shadow: none;
+            width: 8.5in;
+            max-width: 8.5in;
           }
           
           body {
@@ -262,15 +294,36 @@ export const generateResumeHTML = (resumeData) => {
           }
         }
         
+        /* Page Setup */
         @page {
-          margin: 10mm;
-          size: A4;
+          margin: 0.5in;
+          size: letter;
+        }
+        
+        /* ATS-Friendly Table Styles (if needed) */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: ${layout.itemSpacing};
+        }
+        
+        td, th {
+          padding: 4px 8px;
+          text-align: left;
+          border: none;
+          font-size: ${layout.bodySize};
+        }
+        
+        /* Ensure no background colors that might interfere with ATS */
+        .no-background {
+          background: transparent !important;
+          background-color: transparent !important;
         }
       </style>
     </head>
     <body>
       <div class="resume-container">
-        <!-- Header -->
+        <!-- Header Section -->
         <div class="header">
           <h1 class="name">${resumeData.personalDetails?.fullName || 'Your Name'}</h1>
           
@@ -295,19 +348,17 @@ export const generateResumeHTML = (resumeData) => {
         </div>
         ` : ''}
 
-        <!-- Experience -->
+        <!-- Professional Experience -->
         ${resumeData.experience && resumeData.experience.length > 0 ? `
         <div class="section">
           <h2 class="section-title">Professional Experience</h2>
           ${resumeData.experience.map(exp => `
             <div class="section-item">
-              <div class="item-header">
-                <div>
-                  <div class="item-title">${exp.jobTitle}</div>
-                  <div class="item-subtitle">${exp.company}</div>
-                </div>
+              <div class="item-header clearfix">
+                <div class="item-title">${exp.jobTitle}</div>
                 <div class="item-date">${formatDate(exp.startDate)} - ${exp.currentJob ? 'Present' : formatDate(exp.endDate)}</div>
               </div>
+              <div class="item-subtitle">${exp.company}</div>
               ${exp.location ? `<div class="item-location">${exp.location}</div>` : ''}
               <div class="item-description">${exp.responsibilities}</div>
             </div>
@@ -315,23 +366,23 @@ export const generateResumeHTML = (resumeData) => {
         </div>
         ` : ''}
 
-        <!-- Skills -->
+        <!-- Core Competencies / Skills -->
         ${resumeData.skills && resumeData.skills.length > 0 ? `
         <div class="section">
           <h2 class="section-title">Core Competencies</h2>
           <div class="skills-container">
-            ${resumeData.skills.map(skill => `<span class="skill-item">${skill}</span>`).join('')}
+            <div class="skills-text">${resumeData.skills.join(' • ')}</div>
           </div>
         </div>
         ` : ''}
 
-        <!-- Projects -->
+        <!-- Key Projects -->
         ${resumeData.projects && resumeData.projects.length > 0 ? `
         <div class="section">
           <h2 class="section-title">Key Projects</h2>
           ${resumeData.projects.map(project => `
             <div class="section-item">
-              <div class="item-header">
+              <div class="item-header clearfix">
                 <div class="item-title">${project.name}</div>
                 ${project.duration ? `<div class="item-date">${project.duration}</div>` : ''}
               </div>
@@ -349,13 +400,11 @@ export const generateResumeHTML = (resumeData) => {
           <h2 class="section-title">Education</h2>
           ${resumeData.education.map(edu => `
             <div class="section-item">
-              <div class="item-header">
-                <div>
-                  <div class="item-title">${edu.degree}</div>
-                  <div class="item-subtitle">${edu.institution}</div>
-                </div>
+              <div class="item-header clearfix">
+                <div class="item-title">${edu.degree}</div>
                 <div class="item-date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
               </div>
+              <div class="item-subtitle">${edu.institution}</div>
               ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
               ${edu.gpa ? `<div class="item-location"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
               ${edu.achievements ? `<div class="item-description">${edu.achievements}</div>` : ''}
@@ -364,15 +413,17 @@ export const generateResumeHTML = (resumeData) => {
         </div>
         ` : ''}
 
-        <!-- Achievements -->
+        <!-- Achievements & Certifications -->
         ${resumeData.achievements && resumeData.achievements.length > 0 ? `
         <div class="section">
           <h2 class="section-title">Achievements & Certifications</h2>
           ${resumeData.achievements.map(achievement => `
             <div class="section-item">
-              <div class="item-title">${achievement.title}</div>
+              <div class="item-header clearfix">
+                <div class="item-title">${achievement.title}</div>
+                ${achievement.date ? `<div class="item-date">${formatDate(achievement.date)}</div>` : ''}
+              </div>
               ${achievement.organization ? `<div class="item-subtitle">${achievement.organization}</div>` : ''}
-              ${achievement.date ? `<div class="item-location">${formatDate(achievement.date)}</div>` : ''}
               ${achievement.description ? `<div class="item-description">${achievement.description}</div>` : ''}
               ${achievement.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(achievement.link, 'website')}</div>` : ''}
             </div>
@@ -380,7 +431,7 @@ export const generateResumeHTML = (resumeData) => {
         </div>
         ` : ''}
 
-        <!-- Hobbies -->
+        <!-- Hobbies & Interests -->
         ${resumeData.hobbies && resumeData.hobbies.length > 0 ? `
         <div class="section">
           <h2 class="section-title">Hobbies & Interests</h2>

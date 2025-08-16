@@ -326,31 +326,43 @@ export const downloadResume = async (req, res) => {
   try {
     const resumeData = req.body;
 
-    console.log('📥 Generating resume download with dynamic height...');
+    console.log('📥 Generating ATS-optimized resume PDF...');
 
     if (!resumeData || !resumeData.personalDetails) {
       return res.status(400).json({ error: 'Resume data is required' });
     }
 
-    // 1. Generate HTML content with dynamic sizing
+    // 1. Generate ATS-optimized HTML content
     const htmlContent = generateResumeHTML(resumeData);
 
-    // 2. Prepare PDF conversion with dynamic height options
+    // 2. Prepare PDF conversion with ATS-friendly options
     const file = { content: htmlContent };
     const options = { 
       format: 'A4',
+      width: '8.5in',
+      height: '11in',
       printBackground: true,
       margin: {
-        top: '10mm',
-        bottom: '10mm',
-        left: '10mm',
-        right: '10mm'
+        top: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in',
+        right: '0.5in'
       },
-      // Enable content-based height adjustment
-      height: 'auto',
-      // Optimize for single page layout
-      preferCSSPageSize: true,
-      displayHeaderFooter: false
+      displayHeaderFooter: false,
+      preferCSSPageSize: false,
+      // ATS-friendly settings
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-extensions',
+        '--disable-web-security',
+        '--font-render-hinting=none'
+      ]
     };
 
     // 3. Generate PDF buffer
@@ -360,11 +372,12 @@ export const downloadResume = async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${resumeData.personalDetails?.fullName || 'resume'}.pdf"`
+      `attachment; filename="${(resumeData.personalDetails?.fullName || 'resume').replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`
     );
+    res.setHeader('Content-Length', pdfBuffer.length);
     res.end(pdfBuffer);
 
-    console.log('✅ Resume PDF generated with dynamic height optimization');
+    console.log('✅ ATS-optimized resume PDF generated successfully');
   } catch (error) {
     console.error('❌ Error generating resume PDF:', error);
     res.status(500).json({ error: 'Failed to generate resume PDF' });

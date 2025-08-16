@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Divider } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 function FreshGraduateTemplate({ resumeData }) {
   const formatDate = (dateString) => {
@@ -8,115 +8,176 @@ function FreshGraduateTemplate({ resumeData }) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
+  // Calculate optimal layout
+  const calculateOptimalLayout = () => {
+    let totalSections = 0;
+    let totalItems = 0;
+    
+    if (resumeData.summary) totalSections++;
+    if (resumeData.experience?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.experience.length;
+    }
+    if (resumeData.projects?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.projects.length;
+    }
+    if (resumeData.education?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.education.length;
+    }
+    if (resumeData.skills?.length > 0) totalSections++;
+    if (resumeData.achievements?.length > 0) {
+      totalSections++;
+      totalItems += resumeData.achievements.length;
+    }
+    if (resumeData.hobbies?.length > 0) totalSections++;
+    
+    const isContentDense = totalSections > 6 || totalItems > 10;
+    
+    return {
+      sectionSpacing: isContentDense ? 2 : 2.5,
+      itemSpacing: isContentDense ? 1.25 : 1.75,
+      nameSize: isContentDense ? '1.625rem' : '1.875rem',
+      sectionTitleSize: isContentDense ? '0.9375rem' : '1.0625rem',
+      itemTitleSize: isContentDense ? '0.8125rem' : '0.875rem',
+      bodySize: isContentDense ? '0.6875rem' : '0.75rem',
+      smallSize: isContentDense ? '0.625rem' : '0.6875rem',
+      lineHeight: isContentDense ? 1.3 : 1.4
+    };
+  };
+
+  const layout = calculateOptimalLayout();
+
   return (
     <Box
       sx={{
-        fontFamily: '"Roboto", "Arial", sans-serif',
-        lineHeight: 1.6,
-        color: '#333333',
-        backgroundColor: 'white',
-        minHeight: '297mm',
-        width: '210mm',
+        fontFamily: '"Arial", "Helvetica", sans-serif',
+        lineHeight: layout.lineHeight,
+        color: '#000000',
+        backgroundColor: '#ffffff',
+        width: '8.5in',
+        maxWidth: '8.5in',
+        minHeight: '11in',
         margin: '0 auto',
-        padding: '20mm',
+        padding: '0.5in',
         boxSizing: 'border-box',
+        fontSize: layout.bodySize,
         '@media print': {
           margin: 0,
-          padding: '15mm',
-          boxShadow: 'none'
+          padding: '0.5in',
+          boxShadow: 'none',
+          width: '8.5in',
+          maxWidth: '8.5in'
         }
       }}
     >
       {/* Header */}
-      <Box sx={{ textAlign: 'center', mb: 4, pb: 3, borderBottom: '3px solid #4CAF50' }}>
+      <Box 
+        sx={{ 
+          textAlign: 'center', 
+          mb: layout.sectionSpacing, 
+          pb: layout.itemSpacing, 
+          borderBottom: '2px solid #000000' 
+        }}
+      >
         <Typography
-          variant="h3"
+          component="h1"
           sx={{
-            fontWeight: 700,
-            color: '#2E7D32',
+            fontWeight: 'bold',
+            color: '#000000',
             mb: 1,
-            fontSize: '2.4rem',
-            letterSpacing: '1px'
+            fontSize: layout.nameSize,
+            letterSpacing: '1px',
+            fontFamily: 'inherit'
           }}
         >
           {resumeData.personalDetails?.fullName || 'Your Name'}
         </Typography>
         
         <Typography
-          variant="h6"
           sx={{
-            color: '#666666',
+            color: '#333333',
             mb: 2,
-            fontSize: '1rem',
-            fontStyle: 'italic'
+            fontSize: layout.bodySize,
+            fontStyle: 'italic',
+            fontFamily: 'inherit'
           }}
         >
           Fresh Graduate | Aspiring Professional
         </Typography>
         
-        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+        <Box sx={{ mb: 1.5 }}>
           {resumeData.personalDetails?.email && (
-            <Typography variant="body2" sx={{ color: '#555555', fontSize: '0.9rem' }}>
-              ✉ {resumeData.personalDetails.email}
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.bodySize, mr: 2 }}>
+              {resumeData.personalDetails.email}
             </Typography>
           )}
           {resumeData.personalDetails?.phone && (
-            <Typography variant="body2" sx={{ color: '#555555', fontSize: '0.9rem' }}>
-              ☎ {resumeData.personalDetails.phone}
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.bodySize, mr: 2 }}>
+              {resumeData.personalDetails.phone}
             </Typography>
           )}
           {resumeData.personalDetails?.location && (
-            <Typography variant="body2" sx={{ color: '#555555', fontSize: '0.9rem' }}>
-              📍 {resumeData.personalDetails.location}
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.bodySize }}>
+              {resumeData.personalDetails.location}
             </Typography>
           )}
         </Box>
         
-        <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box>
           {resumeData.personalDetails?.linkedin && (
-            <Typography variant="body2" sx={{ color: '#4CAF50', fontSize: '0.85rem' }}>
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
               LinkedIn: {resumeData.personalDetails.linkedin.replace('https://', '')}
             </Typography>
           )}
           {resumeData.personalDetails?.github && (
-            <Typography variant="body2" sx={{ color: '#4CAF50', fontSize: '0.85rem' }}>
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
               GitHub: {resumeData.personalDetails.github.replace('https://', '')}
             </Typography>
           )}
           {resumeData.personalDetails?.website && (
-            <Typography variant="body2" sx={{ color: '#4CAF50', fontSize: '0.85rem' }}>
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize }}>
               Portfolio: {resumeData.personalDetails.website.replace('https://', '')}
             </Typography>
           )}
         </Box>
       </Box>
 
-      {/* Objective/Summary */}
+      {/* Career Objective */}
       {resumeData.summary && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 2,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             CAREER OBJECTIVE
           </Typography>
           <Box
             sx={{
-              backgroundColor: '#F1F8E9',
-              border: '1px solid #C8E6C9',
-              borderRadius: '8px',
-              p: 3
+              border: '1px solid #cccccc',
+              padding: '12px',
+              backgroundColor: '#ffffff'
             }}
           >
-            <Typography variant="body1" sx={{ fontSize: '0.95rem', lineHeight: 1.7, color: '#333333', textAlign: 'justify' }}>
+            <Typography 
+              sx={{ 
+                fontSize: layout.bodySize, 
+                lineHeight: 1.5, 
+                color: '#000000', 
+                textAlign: 'justify',
+                fontFamily: 'inherit'
+              }}
+            >
               {resumeData.summary}
             </Typography>
           </Box>
@@ -125,48 +186,91 @@ function FreshGraduateTemplate({ resumeData }) {
 
       {/* Education */}
       {resumeData.education && resumeData.education.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             EDUCATION
           </Typography>
           {resumeData.education.map((edu, index) => (
-            <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #E0E0E0', borderRadius: '6px', backgroundColor: '#FAFAFA' }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing, p: 1.5, border: '1px solid #cccccc' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem', color: '#2E7D32' }}>
+                  <Typography 
+                    component="h3"
+                    sx={{ 
+                      fontWeight: 'bold', 
+                      fontSize: layout.itemTitleSize, 
+                      color: '#000000',
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {edu.degree}
                   </Typography>
-                  <Typography variant="subtitle1" sx={{ color: '#666666', fontWeight: 500, fontSize: '1rem' }}>
+                  <Typography 
+                    sx={{ 
+                      color: '#333333', 
+                      fontWeight: 'bold', 
+                      fontSize: layout.bodySize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {edu.institution}
                   </Typography>
                   {edu.location && (
-                    <Typography variant="body2" sx={{ color: '#888888', fontSize: '0.9rem' }}>
+                    <Typography 
+                      sx={{ 
+                        color: '#666666', 
+                        fontSize: layout.smallSize,
+                        fontFamily: 'inherit'
+                      }}
+                    >
                       {edu.location}
                     </Typography>
                   )}
                 </Box>
-                <Typography variant="body2" sx={{ color: '#4CAF50', fontSize: '0.9rem', fontWeight: 600 }}>
+                <Typography 
+                  sx={{ 
+                    color: '#000000', 
+                    fontSize: layout.smallSize, 
+                    fontWeight: 'bold',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
                 </Typography>
               </Box>
               {edu.gpa && (
-                <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#333333', mb: 1 }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    color: '#000000', 
+                    mb: 1,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   <strong>GPA:</strong> {edu.gpa}
                 </Typography>
               )}
               {edu.achievements && (
-                <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#333333', lineHeight: 1.6 }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    color: '#000000', 
+                    lineHeight: layout.lineHeight,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   <strong>Achievements:</strong> {edu.achievements}
                 </Typography>
               )}
@@ -175,66 +279,82 @@ function FreshGraduateTemplate({ resumeData }) {
         </Box>
       )}
 
-      {/* Projects */}
+      {/* Academic Projects */}
       {resumeData.projects && resumeData.projects.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             ACADEMIC PROJECTS
           </Typography>
           {resumeData.projects.map((project, index) => (
-            <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #E0E0E0', borderRadius: '6px' }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing, p: 1.5, border: '1px solid #cccccc' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: '#2E7D32' }}>
+                <Typography 
+                  component="h3"
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    fontSize: layout.itemTitleSize, 
+                    color: '#000000',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {project.name}
                 </Typography>
                 {project.duration && (
-                  <Typography variant="body2" sx={{ color: '#888888', fontSize: '0.85rem' }}>
+                  <Typography 
+                    sx={{ 
+                      color: '#666666', 
+                      fontSize: layout.smallSize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {project.duration}
                   </Typography>
                 )}
               </Box>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#333333', mb: 1, textAlign: 'justify' }}>
+              <Typography 
+                sx={{ 
+                  fontSize: layout.bodySize, 
+                  lineHeight: layout.lineHeight, 
+                  color: '#000000', 
+                  mb: 1,
+                  textAlign: 'justify',
+                  fontFamily: 'inherit'
+                }}
+              >
                 {project.description}
               </Typography>
               {project.technologies && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#666666', mb: 0.5 }}>
-                    <strong>Technologies Used:</strong>
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {project.technologies.split(',').map((tech, techIndex) => (
-                      <Box
-                        key={techIndex}
-                        sx={{
-                          display: 'inline-block',
-                          px: 1.5,
-                          py: 0.5,
-                          backgroundColor: '#4CAF50',
-                          color: 'white',
-                          borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500
-                        }}
-                      >
-                        {tech.trim()}
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
+                <Typography 
+                  sx={{
+                    fontSize: layout.smallSize,
+                    color: '#000000',
+                    mb: 0.5,
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <strong>Technologies Used:</strong> {project.technologies}
+                </Typography>
               )}
               {project.link && (
-                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#4CAF50' }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.smallSize, 
+                    color: '#000000',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   <strong>Project Link:</strong> {project.link}
                 </Typography>
               )}
@@ -243,93 +363,121 @@ function FreshGraduateTemplate({ resumeData }) {
         </Box>
       )}
 
-      {/* Skills */}
+      {/* Technical Skills */}
       {resumeData.skills && resumeData.skills.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             TECHNICAL SKILLS
           </Typography>
           <Box
             sx={{
-              p: 2,
-              backgroundColor: '#F1F8E9',
-              border: '1px solid #C8E6C9',
-              borderRadius: '6px'
+              p: 1.5,
+              border: '1px solid #cccccc'
             }}
           >
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {resumeData.skills.map((skill, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'inline-block',
-                    px: 2,
-                    py: 1,
-                    border: '2px solid #4CAF50',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    color: '#2E7D32',
-                    backgroundColor: 'white',
-                    fontWeight: 500
-                  }}
-                >
-                  {skill}
-                </Box>
-              ))}
-            </Box>
+            <Typography 
+              sx={{
+                fontSize: layout.bodySize,
+                color: '#000000',
+                lineHeight: 1.5,
+                fontFamily: 'inherit'
+              }}
+            >
+              {resumeData.skills.join(' • ')}
+            </Typography>
           </Box>
         </Box>
       )}
 
       {/* Experience (if any) */}
       {resumeData.experience && resumeData.experience.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             INTERNSHIPS & EXPERIENCE
           </Typography>
           {resumeData.experience.map((exp, index) => (
-            <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #E0E0E0', borderRadius: '6px' }}>
+            <Box key={index} sx={{ mb: layout.itemSpacing, p: 1.5, border: '1px solid #cccccc' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: '#2E7D32' }}>
+                  <Typography 
+                    component="h3"
+                    sx={{ 
+                      fontWeight: 'bold', 
+                      fontSize: layout.itemTitleSize, 
+                      color: '#000000',
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {exp.jobTitle}
                   </Typography>
-                  <Typography variant="subtitle1" sx={{ color: '#666666', fontWeight: 500, fontSize: '0.95rem' }}>
+                  <Typography 
+                    sx={{ 
+                      color: '#333333', 
+                      fontWeight: 'bold', 
+                      fontSize: layout.bodySize,
+                      fontFamily: 'inherit'
+                    }}
+                  >
                     {exp.company}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ color: '#4CAF50', fontSize: '0.9rem', fontWeight: 600 }}>
+                <Typography 
+                  sx={{ 
+                    color: '#000000', 
+                    fontSize: layout.smallSize, 
+                    fontWeight: 'bold',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {formatDate(exp.startDate)} - {exp.currentJob ? 'Present' : formatDate(exp.endDate)}
                 </Typography>
               </Box>
               {exp.location && (
-                <Typography variant="body2" sx={{ color: '#888888', mb: 1, fontSize: '0.85rem' }}>
+                <Typography 
+                  sx={{ 
+                    color: '#666666', 
+                    mb: 1, 
+                    fontSize: layout.smallSize,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {exp.location}
                 </Typography>
               )}
-              <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#333333', whiteSpace: 'pre-line', textAlign: 'justify' }}>
+              <Typography 
+                sx={{ 
+                  fontSize: layout.bodySize, 
+                  lineHeight: layout.lineHeight, 
+                  color: '#000000', 
+                  whiteSpace: 'pre-line', 
+                  textAlign: 'justify',
+                  fontFamily: 'inherit'
+                }}
+              >
                 {exp.responsibilities}
               </Typography>
             </Box>
@@ -339,33 +487,56 @@ function FreshGraduateTemplate({ resumeData }) {
 
       {/* Achievements */}
       {resumeData.achievements && resumeData.achievements.length > 0 && (
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: layout.sectionSpacing }}>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             ACHIEVEMENTS & CERTIFICATIONS
           </Typography>
           {resumeData.achievements.map((achievement, index) => (
-            <Box key={index} sx={{ mb: 2, p: 2, backgroundColor: '#FAFAFA', borderRadius: '4px' }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#2E7D32' }}>
-                🏆 {achievement.title}
+            <Box key={index} sx={{ mb: layout.itemSpacing, p: 1.5, backgroundColor: '#ffffff' }}>
+              <Typography 
+                component="h3"
+                sx={{ 
+                  fontWeight: 'bold', 
+                  fontSize: layout.itemTitleSize, 
+                  color: '#000000',
+                  fontFamily: 'inherit'
+                }}
+              >
+                {achievement.title}
               </Typography>
               {achievement.organization && (
-                <Typography variant="body2" sx={{ color: '#666666', fontSize: '0.9rem', mb: 0.5 }}>
+                <Typography 
+                  sx={{ 
+                    color: '#333333', 
+                    fontSize: layout.bodySize, 
+                    mb: 0.5,
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {achievement.organization}
                 </Typography>
               )}
               {achievement.description && (
-                <Typography variant="body2" sx={{ fontSize: '0.9rem', color: '#333333' }}>
+                <Typography 
+                  sx={{ 
+                    fontSize: layout.bodySize, 
+                    color: '#000000',
+                    textAlign: 'justify',
+                    fontFamily: 'inherit'
+                  }}
+                >
                   {achievement.description}
                 </Typography>
               )}
@@ -378,28 +549,34 @@ function FreshGraduateTemplate({ resumeData }) {
       {resumeData.hobbies && resumeData.hobbies.length > 0 && (
         <Box>
           <Typography
-            variant="h5"
+            component="h2"
             sx={{
-              fontWeight: 600,
-              mb: 2,
-              color: '#2E7D32',
-              fontSize: '1.2rem',
-              display: 'flex',
-              alignItems: 'center'
+              fontWeight: 'bold',
+              mb: layout.itemSpacing,
+              color: '#000000',
+              fontSize: layout.sectionTitleSize,
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #000000',
+              pb: 0.5,
+              fontFamily: 'inherit'
             }}
           >
-            <Box sx={{ width: '4px', height: '20px', backgroundColor: '#4CAF50', mr: 2 }} />
             HOBBIES & INTERESTS
           </Typography>
           <Box
             sx={{
-              p: 2,
-              backgroundColor: '#F1F8E9',
-              border: '1px solid #C8E6C9',
-              borderRadius: '6px'
+              p: 1.5,
+              border: '1px solid #cccccc'
             }}
           >
-            <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.6, color: '#333333' }}>
+            <Typography 
+              sx={{ 
+                fontSize: layout.bodySize, 
+                lineHeight: 1.4, 
+                color: '#000000',
+                fontFamily: 'inherit'
+              }}
+            >
               {resumeData.hobbies.join(' • ')}
             </Typography>
           </Box>
