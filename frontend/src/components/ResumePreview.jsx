@@ -94,7 +94,7 @@ function ResumePreview({
           <Button
             color="inherit"
             startIcon={downloading ? <CircularProgress size={20} color="inherit" /> : <Download />}
-            onClick={onDownload}
+            onClick={() => onDownload(selectedTemplate)}
             disabled={downloading}
           >
             {downloading ? 'Downloading...' : 'Download PDF'}

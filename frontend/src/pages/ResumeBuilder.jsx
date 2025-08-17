@@ -156,7 +156,7 @@ function ResumeBuilder() {
     setDownloading(true);
     try {
       const dataToDownload = {
-        ...resumeData,
+        resumeData: resumeData,
         selectedTemplate: selectedTemplate
       };
 

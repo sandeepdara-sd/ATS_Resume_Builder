@@ -1,4 +1,4 @@
-export const generateResumeHTML = (resumeData) => {
+export const generateResumeHTML = (resumeData, selectedTemplate = null) => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -9,7 +9,6 @@ export const generateResumeHTML = (resumeData) => {
   const formatLink = (url, type) => {
     if (!url) return '';
     
-    // Remove protocol for cleaner display but keep full URL for ATS parsing
     const cleanUrl = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
     
     switch (type) {
@@ -55,7 +54,6 @@ export const generateResumeHTML = (resumeData) => {
     }
     if (resumeData.hobbies?.length > 0) totalSections++;
     
-    // Determine if content is dense
     const isContentDense = totalSections > 6 || totalItems > 12;
     
     return {
@@ -71,6 +69,342 @@ export const generateResumeHTML = (resumeData) => {
   };
 
   const layout = calculateOptimalLayout();
+
+  // Template-specific styles and layouts
+  const getTemplateStyles = (templateId) => {
+    switch (templateId) {
+      case 'classic-executive':
+        return {
+          fontFamily: '"Times New Roman", "Times", serif',
+          headerStyle: `
+            text-align: center;
+            margin-bottom: ${layout.sectionSpacing};
+            padding-bottom: ${layout.itemSpacing};
+            border-bottom: 2px solid #000000;
+          `,
+          nameStyle: `
+            font-size: ${layout.nameSize};
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1.1;
+          `,
+          sectionTitleStyle: `
+            font-weight: bold;
+            margin-bottom: ${layout.itemSpacing};
+            color: #000000;
+            font-size: ${layout.sectionTitleSize};
+            text-transform: uppercase;
+            border-bottom: 1px solid #000000;
+            padding-bottom: 4px;
+            line-height: 1.2;
+          `,
+          additionalStyles: `
+            .executive-subtitle {
+              color: #000000;
+              margin-bottom: 16px;
+              font-size: ${layout.bodySize};
+              font-style: italic;
+            }
+          `
+        };
+
+      case 'tech-focused':
+        return {
+          fontFamily: '"Arial", "Helvetica", sans-serif',
+          headerStyle: `
+            margin-bottom: ${layout.sectionSpacing};
+            position: relative;
+            padding-left: 16px;
+            border-left: 4px solid #000000;
+          `,
+          nameStyle: `
+            font-size: ${layout.nameSize};
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+            line-height: 1.2;
+          `,
+          sectionTitleStyle: `
+            font-weight: bold;
+            margin-bottom: ${layout.itemSpacing};
+            color: #000000;
+            font-size: ${layout.sectionTitleSize};
+            text-transform: uppercase;
+            line-height: 1.2;
+          `,
+          additionalStyles: `
+            .tech-subtitle {
+              color: #333333;
+              margin-bottom: 16px;
+              font-size: ${layout.bodySize};
+              font-weight: bold;
+            }
+            .tech-experience-item {
+              margin-bottom: ${layout.itemSpacing};
+              position: relative;
+              padding-left: 16px;
+              border-left: 2px solid #cccccc;
+            }
+          `
+        };
+
+      case 'fresh-graduate':
+        return {
+          fontFamily: '"Arial", "Helvetica", sans-serif',
+          headerStyle: `
+            text-align: center;
+            margin-bottom: ${layout.sectionSpacing};
+            padding-bottom: ${layout.itemSpacing};
+            border-bottom: 2px solid #000000;
+          `,
+          nameStyle: `
+            font-size: ${layout.nameSize};
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+          `,
+          sectionTitleStyle: `
+            font-weight: bold;
+            margin-bottom: ${layout.itemSpacing};
+            color: #000000;
+            font-size: ${layout.sectionTitleSize};
+            text-transform: uppercase;
+            border-bottom: 1px solid #000000;
+            padding-bottom: 4px;
+          `,
+          additionalStyles: `
+            .fresh-subtitle {
+              color: #333333;
+              margin-bottom: 16px;
+              font-size: ${layout.bodySize};
+              font-style: italic;
+            }
+            .fresh-section-item {
+              margin-bottom: ${layout.itemSpacing};
+              padding: 12px;
+              border: 1px solid #cccccc;
+            }
+          `
+        };
+
+      case 'minimal-elegant':
+        return {
+          fontFamily: '"Arial", "Helvetica", sans-serif',
+          headerStyle: `
+            text-align: center;
+            margin-bottom: ${layout.sectionSpacing};
+          `,
+          nameStyle: `
+            font-size: ${layout.nameSize};
+            font-weight: normal;
+            color: #000000;
+            margin-bottom: 16px;
+            letter-spacing: 2px;
+            font-family: "Times New Roman", serif;
+          `,
+          sectionTitleStyle: `
+            font-weight: normal;
+            margin-bottom: ${layout.itemSpacing};
+            color: #000000;
+            font-size: ${layout.sectionTitleSize};
+            font-family: "Times New Roman", serif;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+          `,
+          additionalStyles: `
+            .minimal-divider {
+              width: 60px;
+              height: 1px;
+              background-color: #000000;
+              margin: 0 auto 24px auto;
+            }
+            .minimal-section-divider {
+              position: absolute;
+              bottom: -8px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 40px;
+              height: 1px;
+              background-color: #000000;
+            }
+          `
+        };
+
+      default: // modern-professional
+        return {
+          fontFamily: '"Arial", "Helvetica", sans-serif',
+          headerStyle: `
+            text-align: center;
+            margin-bottom: ${layout.sectionSpacing};
+            padding-bottom: ${layout.itemSpacing};
+            border-bottom: 1px solid #cccccc;
+          `,
+          nameStyle: `
+            font-size: ${layout.nameSize};
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+          `,
+          sectionTitleStyle: `
+            font-size: ${layout.sectionTitleSize};
+            font-weight: bold;
+            color: #000000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: ${layout.itemSpacing};
+            padding-bottom: 4px;
+            border-bottom: 1px solid #cccccc;
+            line-height: 1.2;
+          `,
+          additionalStyles: ''
+        };
+    }
+  };
+
+  const templateId = selectedTemplate?.id || 'modern-professional';
+  const templateStyles = getTemplateStyles(templateId);
+
+  // Generate template-specific content
+  const generateTemplateContent = () => {
+    const baseContent = {
+      header: `
+        <div class="header" style="${templateStyles.headerStyle}">
+          <h1 class="name" style="${templateStyles.nameStyle}">
+            ${resumeData.personalDetails?.fullName || 'Your Name'}
+          </h1>
+          ${templateId === 'classic-executive' ? `
+            <div class="executive-subtitle">Executive Professional</div>
+          ` : templateId === 'tech-focused' ? `
+            <div class="tech-subtitle">Software Developer</div>
+          ` : templateId === 'fresh-graduate' ? `
+            <div class="fresh-subtitle">Fresh Graduate | Aspiring Professional</div>
+          ` : ''}
+          ${templateId === 'minimal-elegant' ? `<div class="minimal-divider"></div>` : ''}
+          
+          <div class="contact-info">
+            ${resumeData.personalDetails?.email ? `<span class="contact-item">${resumeData.personalDetails.email}</span>` : ''}
+            ${resumeData.personalDetails?.phone ? `<span class="contact-item">${resumeData.personalDetails.phone}</span>` : ''}
+            ${resumeData.personalDetails?.location ? `<span class="contact-item">${resumeData.personalDetails.location}</span>` : ''}
+          </div>
+          
+          <div class="links">
+            ${resumeData.personalDetails?.linkedin ? `<span class="link-item">LinkedIn: ${formatLink(resumeData.personalDetails.linkedin, 'linkedin')}</span>` : ''}
+            ${resumeData.personalDetails?.github ? `<span class="link-item">GitHub: ${formatLink(resumeData.personalDetails.github, 'github')}</span>` : ''}
+            ${resumeData.personalDetails?.website ? `<span class="link-item">Portfolio: ${formatLink(resumeData.personalDetails.website, 'website')}</span>` : ''}
+          </div>
+        </div>
+      `,
+      
+      summary: resumeData.summary ? `
+        <div class="section">
+          <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+            ${templateId === 'fresh-graduate' ? 'CAREER OBJECTIVE' : 
+              templateId === 'classic-executive' ? 'Executive Summary' : 'Professional Summary'}
+            ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+          </h2>
+          ${templateId === 'fresh-graduate' ? `
+            <div style="border: 1px solid #cccccc; padding: 12px; background-color: #ffffff;">
+              <div class="summary-text">${resumeData.summary}</div>
+            </div>
+          ` : `
+            <div class="summary-text">${resumeData.summary}</div>
+          `}
+        </div>
+      ` : '',
+
+      experience: resumeData.experience && resumeData.experience.length > 0 ? `
+        <div class="section">
+          <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+            ${templateId === 'fresh-graduate' ? 'INTERNSHIPS & EXPERIENCE' : 'Professional Experience'}
+            ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+          </h2>
+          ${resumeData.experience.map(exp => `
+            <div class="section-item ${templateId === 'tech-focused' ? 'tech-experience-item' : templateId === 'fresh-graduate' ? 'fresh-section-item' : ''}">
+              <div class="item-header clearfix">
+                <div class="item-title">${exp.jobTitle}</div>
+                <div class="item-date">${formatDate(exp.startDate)} - ${exp.currentJob ? 'Present' : formatDate(exp.endDate)}</div>
+              </div>
+              <div class="item-subtitle">${exp.company}</div>
+              ${exp.location ? `<div class="item-location">${exp.location}</div>` : ''}
+              <div class="item-description">${exp.responsibilities}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '',
+
+      skills: resumeData.skills && resumeData.skills.length > 0 ? `
+        <div class="section">
+          <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+            ${templateId === 'tech-focused' ? 'TECHNICAL SKILLS' : 
+              templateId === 'fresh-graduate' ? 'TECHNICAL SKILLS' : 'Core Competencies'}
+            ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+          </h2>
+          ${templateId === 'tech-focused' ? generateTechSkills(resumeData.skills) : 
+            templateId === 'fresh-graduate' ? `
+              <div style="padding: 12px; border: 1px solid #cccccc;">
+                <div class="skills-text">${resumeData.skills.join(' • ')}</div>
+              </div>
+            ` : `
+              <div class="skills-container">
+                <div class="skills-text">${resumeData.skills.join(' • ')}</div>
+              </div>
+            `}
+        </div>
+      ` : ''
+    };
+
+    return baseContent;
+  };
+
+  // Generate tech-focused skills categorization
+  const generateTechSkills = (skills) => {
+    const categories = {
+      'Programming Languages': [],
+      'Frameworks & Libraries': [],
+      'Tools & Technologies': [],
+      'Other Skills': []
+    };
+
+    const programmingKeywords = ['javascript', 'python', 'java', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'typescript', 'sql', 'html', 'css'];
+    const frameworkKeywords = ['react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'laravel', 'rails', 'bootstrap', 'jquery'];
+    const toolKeywords = ['git', 'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'jenkins', 'webpack', 'babel', 'npm', 'yarn', 'mongodb', 'mysql', 'postgresql'];
+
+    skills.forEach(skill => {
+      const lowerSkill = skill.toLowerCase();
+      if (programmingKeywords.some(keyword => lowerSkill.includes(keyword))) {
+        categories['Programming Languages'].push(skill);
+      } else if (frameworkKeywords.some(keyword => lowerSkill.includes(keyword))) {
+        categories['Frameworks & Libraries'].push(skill);
+      } else if (toolKeywords.some(keyword => lowerSkill.includes(keyword))) {
+        categories['Tools & Technologies'].push(skill);
+      } else {
+        categories['Other Skills'].push(skill);
+      }
+    });
+
+    return Object.entries(categories)
+      .filter(([_, skills]) => skills.length > 0)
+      .map(([category, skills]) => `
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: ${layout.bodySize}; font-weight: bold; color: #000000; margin-bottom: 4px;">
+            ${category}:
+          </div>
+          <div style="font-size: ${layout.bodySize}; color: #000000; line-height: 1.4;">
+            ${skills.join(' • ')}
+          </div>
+        </div>
+      `).join('');
+  };
+
+  const content = generateTemplateContent();
 
   return `
     <!DOCTYPE html>
@@ -89,7 +423,7 @@ export const generateResumeHTML = (resumeData) => {
         
         /* ATS-Optimized Body Styles */
         body {
-          font-family: 'Arial', 'Helvetica', sans-serif;
+          font-family: ${templateStyles.fontFamily};
           font-size: ${layout.bodySize};
           line-height: ${layout.lineHeight};
           color: #000000;
@@ -109,24 +443,7 @@ export const generateResumeHTML = (resumeData) => {
           position: relative;
         }
         
-        /* Header Section - ATS Optimized */
-        .header {
-          text-align: center;
-          margin-bottom: ${layout.sectionSpacing};
-          padding-bottom: ${layout.itemSpacing};
-          border-bottom: 1px solid #cccccc;
-        }
-        
-        .name {
-          font-size: ${layout.nameSize};
-          font-weight: bold;
-          color: #000000;
-          margin-bottom: 8px;
-          letter-spacing: 0.5px;
-          text-transform: none;
-          line-height: 1.2;
-        }
-        
+        /* Contact Info Styles */
         .contact-info {
           margin-bottom: 6px;
         }
@@ -166,18 +483,6 @@ export const generateResumeHTML = (resumeData) => {
         
         .section:last-child {
           margin-bottom: 0;
-        }
-        
-        .section-title {
-          font-size: ${layout.sectionTitleSize};
-          font-weight: bold;
-          color: #000000;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: ${layout.itemSpacing};
-          padding-bottom: 4px;
-          border-bottom: 1px solid #cccccc;
-          line-height: 1.2;
         }
         
         /* Item Styles */
@@ -266,6 +571,9 @@ export const generateResumeHTML = (resumeData) => {
           clear: both;
         }
         
+        /* Template-specific styles */
+        ${templateStyles.additionalStyles}
+        
         /* Print Optimization */
         @media print {
           .resume-container {
@@ -299,144 +607,119 @@ export const generateResumeHTML = (resumeData) => {
           margin: 0.5in;
           size: letter;
         }
-        
-        /* ATS-Friendly Table Styles (if needed) */
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: ${layout.itemSpacing};
-        }
-        
-        td, th {
-          padding: 4px 8px;
-          text-align: left;
-          border: none;
-          font-size: ${layout.bodySize};
-        }
-        
-        /* Ensure no background colors that might interfere with ATS */
-        .no-background {
-          background: transparent !important;
-          background-color: transparent !important;
-        }
       </style>
     </head>
     <body>
       <div class="resume-container">
-        <!-- Header Section -->
-        <div class="header">
-          <h1 class="name">${resumeData.personalDetails?.fullName || 'Your Name'}</h1>
-          
-          <div class="contact-info">
-            ${resumeData.personalDetails?.email ? `<span class="contact-item">${resumeData.personalDetails.email}</span>` : ''}
-            ${resumeData.personalDetails?.phone ? `<span class="contact-item">${resumeData.personalDetails.phone}</span>` : ''}
-            ${resumeData.personalDetails?.location ? `<span class="contact-item">${resumeData.personalDetails.location}</span>` : ''}
-          </div>
-          
-          <div class="links">
-            ${resumeData.personalDetails?.linkedin ? `<span class="link-item">LinkedIn: ${formatLink(resumeData.personalDetails.linkedin, 'linkedin')}</span>` : ''}
-            ${resumeData.personalDetails?.github ? `<span class="link-item">GitHub: ${formatLink(resumeData.personalDetails.github, 'github')}</span>` : ''}
-            ${resumeData.personalDetails?.website ? `<span class="link-item">Portfolio: ${formatLink(resumeData.personalDetails.website, 'website')}</span>` : ''}
-          </div>
-        </div>
+        ${content.header}
 
-        <!-- Professional Summary -->
-        ${resumeData.summary ? `
-        <div class="section">
-          <h2 class="section-title">Professional Summary</h2>
-          <div class="summary-text">${resumeData.summary}</div>
-        </div>
-        ` : ''}
+        ${content.summary}
 
-        <!-- Professional Experience -->
-        ${resumeData.experience && resumeData.experience.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Professional Experience</h2>
-          ${resumeData.experience.map(exp => `
-            <div class="section-item">
-              <div class="item-header clearfix">
-                <div class="item-title">${exp.jobTitle}</div>
-                <div class="item-date">${formatDate(exp.startDate)} - ${exp.currentJob ? 'Present' : formatDate(exp.endDate)}</div>
-              </div>
-              <div class="item-subtitle">${exp.company}</div>
-              ${exp.location ? `<div class="item-location">${exp.location}</div>` : ''}
-              <div class="item-description">${exp.responsibilities}</div>
+        ${templateId === 'fresh-graduate' ? 
+          // Education first for fresh graduates
+          (resumeData.education && resumeData.education.length > 0 ? `
+            <div class="section">
+              <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">EDUCATION</h2>
+              ${resumeData.education.map(edu => `
+                <div class="fresh-section-item">
+                  <div class="item-header clearfix">
+                    <div class="item-title">${edu.degree}</div>
+                    <div class="item-date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
+                  </div>
+                  <div class="item-subtitle">${edu.institution}</div>
+                  ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
+                  ${edu.gpa ? `<div class="item-location"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
+                  ${edu.achievements ? `<div class="item-description">${edu.achievements}</div>` : ''}
+                </div>
+              `).join('')}
             </div>
-          `).join('')}
-        </div>
-        ` : ''}
+          ` : '') :
+          // Experience first for others
+          content.experience
+        }
 
-        <!-- Core Competencies / Skills -->
-        ${resumeData.skills && resumeData.skills.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Core Competencies</h2>
-          <div class="skills-container">
-            <div class="skills-text">${resumeData.skills.join(' • ')}</div>
-          </div>
-        </div>
-        ` : ''}
+        ${content.skills}
 
-        <!-- Key Projects -->
         ${resumeData.projects && resumeData.projects.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Key Projects</h2>
-          ${resumeData.projects.map(project => `
-            <div class="section-item">
-              <div class="item-header clearfix">
-                <div class="item-title">${project.name}</div>
-                ${project.duration ? `<div class="item-date">${project.duration}</div>` : ''}
+          <div class="section">
+            <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+              ${templateId === 'fresh-graduate' ? 'ACADEMIC PROJECTS' : 
+                templateId === 'classic-executive' ? 'Notable Projects' : 'Key Projects'}
+              ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+            </h2>
+            ${resumeData.projects.map(project => `
+              <div class="section-item ${templateId === 'fresh-graduate' ? 'fresh-section-item' : ''}">
+                <div class="item-header clearfix">
+                  <div class="item-title">${project.name}</div>
+                  ${project.duration ? `<div class="item-date">${project.duration}</div>` : ''}
+                </div>
+                <div class="item-description">${project.description}</div>
+                ${project.technologies ? `<div class="item-location"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
+                ${project.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(project.link, 'website')}</div>` : ''}
               </div>
-              <div class="item-description">${project.description}</div>
-              ${project.technologies ? `<div class="item-location"><strong>Technologies:</strong> ${project.technologies}</div>` : ''}
-              ${project.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(project.link, 'website')}</div>` : ''}
-            </div>
-          `).join('')}
-        </div>
+            `).join('')}
+          </div>
         ` : ''}
 
-        <!-- Education -->
-        ${resumeData.education && resumeData.education.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Education</h2>
-          ${resumeData.education.map(edu => `
-            <div class="section-item">
-              <div class="item-header clearfix">
-                <div class="item-title">${edu.degree}</div>
-                <div class="item-date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
-              </div>
-              <div class="item-subtitle">${edu.institution}</div>
-              ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
-              ${edu.gpa ? `<div class="item-location"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
-              ${edu.achievements ? `<div class="item-description">${edu.achievements}</div>` : ''}
+        ${templateId !== 'fresh-graduate' ? 
+          // Education for non-fresh graduates
+          (resumeData.education && resumeData.education.length > 0 ? `
+            <div class="section">
+              <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+                Education
+                ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+              </h2>
+              ${resumeData.education.map(edu => `
+                <div class="section-item">
+                  <div class="item-header clearfix">
+                    <div class="item-title">${edu.degree}</div>
+                    <div class="item-date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
+                  </div>
+                  <div class="item-subtitle">${edu.institution}</div>
+                  ${edu.location ? `<div class="item-location">${edu.location}</div>` : ''}
+                  ${edu.gpa ? `<div class="item-location"><strong>GPA:</strong> ${edu.gpa}</div>` : ''}
+                  ${edu.achievements ? `<div class="item-description">${edu.achievements}</div>` : ''}
+                </div>
+              `).join('')}
             </div>
-          `).join('')}
-        </div>
-        ` : ''}
+          ` : '') :
+          content.experience
+        }
 
-        <!-- Achievements & Certifications -->
         ${resumeData.achievements && resumeData.achievements.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Achievements & Certifications</h2>
-          ${resumeData.achievements.map(achievement => `
-            <div class="section-item">
-              <div class="item-header clearfix">
-                <div class="item-title">${achievement.title}</div>
-                ${achievement.date ? `<div class="item-date">${formatDate(achievement.date)}</div>` : ''}
+          <div class="section">
+            <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+              ${templateId === 'classic-executive' ? 'Professional Achievements' : 'Achievements & Certifications'}
+              ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+            </h2>
+            ${resumeData.achievements.map(achievement => `
+              <div class="section-item ${templateId === 'fresh-graduate' ? 'fresh-section-item' : ''}">
+                <div class="item-header clearfix">
+                  <div class="item-title">${achievement.title}</div>
+                  ${achievement.date ? `<div class="item-date">${formatDate(achievement.date)}</div>` : ''}
+                </div>
+                ${achievement.organization ? `<div class="item-subtitle">${achievement.organization}</div>` : ''}
+                ${achievement.description ? `<div class="item-description">${achievement.description}</div>` : ''}
+                ${achievement.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(achievement.link, 'website')}</div>` : ''}
               </div>
-              ${achievement.organization ? `<div class="item-subtitle">${achievement.organization}</div>` : ''}
-              ${achievement.description ? `<div class="item-description">${achievement.description}</div>` : ''}
-              ${achievement.link ? `<div class="item-location"><strong>Link:</strong> ${formatLink(achievement.link, 'website')}</div>` : ''}
-            </div>
-          `).join('')}
-        </div>
+            `).join('')}
+          </div>
         ` : ''}
 
-        <!-- Hobbies & Interests -->
         ${resumeData.hobbies && resumeData.hobbies.length > 0 ? `
-        <div class="section">
-          <h2 class="section-title">Hobbies & Interests</h2>
-          <div class="hobbies-text">${resumeData.hobbies.join(' • ')}</div>
-        </div>
+          <div class="section">
+            <h2 class="section-title" style="${templateStyles.sectionTitleStyle}">
+              Hobbies & Interests
+              ${templateId === 'minimal-elegant' ? '<div class="minimal-section-divider"></div>' : ''}
+            </h2>
+            ${templateId === 'fresh-graduate' ? `
+              <div style="padding: 12px; border: 1px solid #cccccc;">
+                <div class="hobbies-text">${resumeData.hobbies.join(' • ')}</div>
+              </div>
+            ` : `
+              <div class="hobbies-text">${resumeData.hobbies.join(' • ')}</div>
+            `}
+          </div>
         ` : ''}
       </div>
     </body>

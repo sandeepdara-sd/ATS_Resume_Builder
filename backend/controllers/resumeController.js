@@ -324,7 +324,7 @@ export const deleteResume = async (req, res) => {
 
 export const downloadResume = async (req, res) => {
   try {
-    const resumeData = req.body;
+    const { resumeData, selectedTemplate } = req.body;
 
     console.log('📥 Generating ATS-optimized resume PDF...');
 
@@ -333,7 +333,7 @@ export const downloadResume = async (req, res) => {
     }
 
     // 1. Generate ATS-optimized HTML content
-    const htmlContent = generateResumeHTML(resumeData);
+    const htmlContent = generateResumeHTML(resumeData, selectedTemplate);
 
     // 2. Prepare PDF conversion with ATS-friendly options
     const file = { content: htmlContent };

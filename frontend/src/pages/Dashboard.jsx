@@ -185,7 +185,10 @@ function Dashboard() {
   const handleDownloadResume = async (resume) => {
     try {
       setDownloadingResumeId(resume._id);
-      const response = await axios.post(`${api_url}/api/download-resume`, resume, {
+      const response = await axios.post(`${api_url}/api/download-resume`, {
+        resumeData: resume,
+        selectedTemplate: resume.selectedTemplate || { id: 'modern-professional' }
+      }, {
         responseType: 'blob'
       });
      
