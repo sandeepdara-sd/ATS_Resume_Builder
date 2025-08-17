@@ -71,7 +71,8 @@ import {
   School,
   BarChart,
   PieChart,
-  ShowChart
+  ShowChart,
+  Timeline
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +90,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Pie
 } from 'recharts';
 import axios from 'axios';
 import { api_url } from '../helper/Helper';
@@ -155,6 +157,11 @@ function AdminDashboard() {
       if (error.response?.status === 401 || error.response?.status === 403) {
         handleLogout();
       }
+      setSnackbar({
+        open: true,
+        message: 'Failed to load dashboard data',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -166,6 +173,19 @@ function AdminDashboard() {
       setDashboardStats(response.data);
     } catch (error) {
       console.error('Failed to load dashboard stats:', error);
+      // Set empty stats to prevent errors
+      setDashboardStats({
+        stats: {
+          totalUsers: 0,
+          totalResumes: 0,
+          totalFeedback: 0,
+          activeUsers: 0,
+          userGrowthRate: 0
+        },
+        recentActivity: {
+          users: []
+        }
+      });
     }
   };
 
@@ -180,9 +200,10 @@ function AdminDashboard() {
           sortOrder
         }
       });
-      setUsers(response.data.users || []);
+      setUsers(Array.isArray(response.data.users) ? response.data.users : []);
     } catch (error) {
       console.error('Failed to load users:', error);
+      setUsers([]);
     }
   };
 
@@ -197,9 +218,10 @@ function AdminDashboard() {
           sortOrder
         }
       });
-      setResumes(response.data.resumes || []);
+      setResumes(Array.isArray(response.data.resumes) ? response.data.resumes : []);
     } catch (error) {
       console.error('Failed to load resumes:', error);
+      setResumes([]);
     }
   };
 
@@ -214,72 +236,91 @@ function AdminDashboard() {
           sortOrder
         }
       });
-      setFeedback(response.data.feedback || []);
+      setFeedback(Array.isArray(response.data.feedback) ? response.data.feedback : []);
     } catch (error) {
       console.error('Failed to load feedback:', error);
+      setFeedback([]);
     }
   };
 
   const generateChartData = () => {
-    // Generate user growth data (last 7 days)
-    const userGrowthData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      
-      // Calculate users created on this day
-      const usersOnDay = users.filter(user => {
-        const userDate = new Date(user.createdAt);
-        return userDate.toDateString() === date.toDateString();
-      }).length;
-      
-      userGrowthData.push({
-        date: dateStr,
-        users: usersOnDay,
-        cumulative: users.filter(user => new Date(user.createdAt) <= date).length
+    try {
+      // Generate user growth data (last 7 days)
+      const userGrowthData = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Calculate users created on this day
+        const usersOnDay = users.filter(user => {
+          if (!user.createdAt) return false;
+          const userDate = new Date(user.createdAt);
+          return userDate.toDateString() === date.toDateString();
+        }).length;
+        
+        userGrowthData.push({
+          date: dateStr,
+          users: usersOnDay,
+          cumulative: users.filter(user => {
+            if (!user.createdAt) return false;
+            return new Date(user.createdAt) <= date;
+          }).length
+        });
+      }
+
+      // Resume statistics
+      const resumeStatsData = [
+        { name: 'Total Resumes', value: resumes.length, color: '#667eea' },
+        { name: 'High Score (90+)', value: resumes.filter(r => r.score >= 90).length, color: '#10b981' },
+        { name: 'Good Score (70-89)', value: resumes.filter(r => r.score >= 70 && r.score < 90).length, color: '#f59e0b' },
+        { name: 'Needs Improvement (<70)', value: resumes.filter(r => r.score < 70).length, color: '#ef4444' }
+      ];
+
+      // Feedback distribution
+      const feedbackTypes = ['general', 'bug', 'feature', 'help'];
+      const feedbackDistData = feedbackTypes.map(type => ({
+        name: type.charAt(0).toUpperCase() + type.slice(1),
+        value: feedback.filter(f => f.type === type).length,
+        color: type === 'general' ? '#667eea' : 
+               type === 'bug' ? '#ef4444' :
+               type === 'feature' ? '#f59e0b' : '#10b981'
+      }));
+
+      // Score distribution
+      const scoreRanges = [
+        { range: '90-100', min: 90, max: 100, color: '#10b981' },
+        { range: '80-89', min: 80, max: 89, color: '#3b82f6' },
+        { range: '70-79', min: 70, max: 79, color: '#f59e0b' },
+        { range: '60-69', min: 60, max: 69, color: '#ef4444' },
+        { range: '0-59', min: 0, max: 59, color: '#6b7280' }
+      ];
+
+      const scoreDistData = scoreRanges.map(range => ({
+        range: range.range,
+        count: resumes.filter(r => {
+          const score = r.score || 0;
+          return score >= range.min && score <= range.max;
+        }).length,
+        color: range.color
+      }));
+
+      setChartData({
+        userGrowth: userGrowthData,
+        resumeStats: resumeStatsData,
+        feedbackDistribution: feedbackDistData,
+        scoreDistribution: scoreDistData
+      });
+    } catch (error) {
+      console.error('Error generating chart data:', error);
+      // Set empty chart data on error
+      setChartData({
+        userGrowth: [],
+        resumeStats: [],
+        feedbackDistribution: [],
+        scoreDistribution: []
       });
     }
-
-    // Resume statistics
-    const resumeStatsData = [
-      { name: 'Total Resumes', value: resumes.length, color: '#667eea' },
-      { name: 'High Score (90+)', value: resumes.filter(r => r.score >= 90).length, color: '#10b981' },
-      { name: 'Good Score (70-89)', value: resumes.filter(r => r.score >= 70 && r.score < 90).length, color: '#f59e0b' },
-      { name: 'Needs Improvement (<70)', value: resumes.filter(r => r.score < 70).length, color: '#ef4444' }
-    ];
-
-    // Feedback distribution
-    const feedbackTypes = ['general', 'bug', 'feature', 'help'];
-    const feedbackDistData = feedbackTypes.map(type => ({
-      name: type.charAt(0).toUpperCase() + type.slice(1),
-      value: feedback.filter(f => f.type === type).length,
-      color: type === 'general' ? '#667eea' : 
-             type === 'bug' ? '#ef4444' :
-             type === 'feature' ? '#f59e0b' : '#10b981'
-    }));
-
-    // Score distribution
-    const scoreRanges = [
-      { range: '90-100', min: 90, max: 100, color: '#10b981' },
-      { range: '80-89', min: 80, max: 89, color: '#3b82f6' },
-      { range: '70-79', min: 70, max: 79, color: '#f59e0b' },
-      { range: '60-69', min: 60, max: 69, color: '#ef4444' },
-      { range: '0-59', min: 0, max: 59, color: '#6b7280' }
-    ];
-
-    const scoreDistData = scoreRanges.map(range => ({
-      range: range.range,
-      count: resumes.filter(r => r.score >= range.min && r.score <= range.max).length,
-      color: range.color
-    }));
-
-    setChartData({
-      userGrowth: userGrowthData,
-      resumeStats: resumeStatsData,
-      feedbackDistribution: feedbackDistData,
-      scoreDistribution: scoreDistData
-    });
   };
 
   const handleUserDetails = async (userId) => {
@@ -328,7 +369,7 @@ function AdminDashboard() {
       }
       
       // Reload stats and regenerate charts
-      loadDashboardStats();
+      await loadDashboardStats();
       generateChartData();
     } catch (error) {
       console.error('Failed to delete:', error);
@@ -397,9 +438,11 @@ function AdminDashboard() {
 
   // Reload data when filters change
   useEffect(() => {
-    if (currentTab === 1) loadUsers();
-    else if (currentTab === 2) loadResumes();
-    else if (currentTab === 3) loadFeedback();
+    if (!loading) {
+      if (currentTab === 1) loadUsers();
+      else if (currentTab === 2) loadResumes();
+      else if (currentTab === 3) loadFeedback();
+    }
   }, [searchTerm, filterType, page, rowsPerPage, sortBy, sortOrder, currentTab]);
 
   // Regenerate chart data when data changes
@@ -410,11 +453,16 @@ function AdminDashboard() {
   }, [users, resumes, feedback]);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getScoreColor = (score) => {
@@ -424,7 +472,13 @@ function AdminDashboard() {
     return 'error';
   };
 
-  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const adminData = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('adminData') || '{}');
+    } catch (error) {
+      return {};
+    }
+  })();
 
   if (loading && !dashboardStats) {
     return (
@@ -508,7 +562,7 @@ function AdminDashboard() {
             onClick={(e) => setAdminMenuAnchor(e.currentTarget)}
             startIcon={
               <Avatar sx={{ width: 36, height: 36, backgroundColor: 'rgba(255,255,255,0.15)' }}>
-                {adminData.name?.[0] || 'A'}
+                {(adminData.name && adminData.name[0]) || 'A'}
               </Avatar>
             }
             sx={{ 
@@ -655,7 +709,7 @@ function AdminDashboard() {
                           Total Resumes
                         </Typography>
                         <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                          {resumes.filter(r => r.score >= 80).length} high-scoring
+                          {resumes.filter(r => (r.score || 0) >= 80).length} high-scoring
                         </Typography>
                       </Box>
                       <Box
@@ -971,12 +1025,12 @@ function AdminDashboard() {
                   </Typography>
                   <Box sx={{ maxHeight: 250, overflow: 'auto' }}>
                     {dashboardStats?.recentActivity?.users?.slice(0, 5).map((user, index) => (
-                      <Box key={user._id} sx={{ display: 'flex', alignItems: 'center', mb: 2, p: 2, borderRadius: 2, backgroundColor: 'grey.50' }}>
+                      <Box key={user._id || index} sx={{ display: 'flex', alignItems: 'center', mb: 2, p: 2, borderRadius: 2, backgroundColor: 'grey.50' }}>
                         <Avatar
                           src={user.photoURL}
                           sx={{ mr: 2, width: 32, height: 32 }}
                         >
-                          {user.displayName?.[0] || user.email?.[0] || 'U'}
+                          {(user.displayName && user.displayName[0]) || (user.email && user.email[0]) || 'U'}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -988,7 +1042,11 @@ function AdminDashboard() {
                         </Box>
                         <Chip size="small" label="New" color="success" />
                       </Box>
-                    ))}
+                    )) || (
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                        No recent activity
+                      </Typography>
+                    )}
                   </Box>
                 </Paper>
               </Grid>
@@ -1012,7 +1070,7 @@ function AdminDashboard() {
                     <Grid item xs={12} sm={6} md={3}>
                       <Box sx={{ textAlign: 'center', p: 3, borderRadius: 2, backgroundColor: 'success.light', color: 'success.contrastText' }}>
                         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                          {feedback.length > 0 ? (feedback.reduce((sum, f) => sum + f.rating, 0) / feedback.length).toFixed(1) : 0}
+                          {feedback.length > 0 ? (feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / feedback.length).toFixed(1) : 0}
                         </Typography>
                         <Typography variant="body2">Average Rating</Typography>
                       </Box>
@@ -1099,14 +1157,14 @@ function AdminDashboard() {
                                 src={user.photoURL}
                                 sx={{ mr: 2, width: 40, height: 40 }}
                               >
-                                {user.displayName?.[0] || user.email?.[0] || 'U'}
+                                {(user.displayName && user.displayName[0]) || (user.email && user.email[0]) || 'U'}
                               </Avatar>
                               <Box>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                                   {user.displayName || 'No Name'}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  ID: {user._id.slice(-6)}
+                                  ID: {user._id && user._id.slice(-6)}
                                 </Typography>
                               </Box>
                             </Box>
@@ -1245,7 +1303,8 @@ function AdminDashboard() {
                                 src={resume.userId?.photoURL}
                                 sx={{ mr: 1, width: 32, height: 32 }}
                               >
-                                {resume.userId?.displayName?.[0] || resume.userId?.email?.[0] || 'U'}
+                                {(resume.userId?.displayName && resume.userId.displayName[0]) || 
+                                 (resume.userId?.email && resume.userId.email[0]) || 'U'}
                               </Avatar>
                               <Box>
                                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -1283,7 +1342,7 @@ function AdminDashboard() {
                                 setDeleteTarget({ 
                                   type: 'resume', 
                                   id: resume._id, 
-                                  name: resume.personalDetails?.fullName || resume.title 
+                                  name: resume.personalDetails?.fullName || resume.title || 'Untitled Resume'
                                 });
                                 setDeleteDialogOpen(true);
                               }}
@@ -1398,7 +1457,8 @@ function AdminDashboard() {
                                 src={fb.user?.photoURL}
                                 sx={{ mr: 1, width: 32, height: 32 }}
                               >
-                                {fb.user?.displayName?.[0] || fb.user?.email?.[0] || 'U'}
+                                {(fb.user?.displayName && fb.user.displayName[0]) || 
+                                 (fb.user?.email && fb.user.email[0]) || 'U'}
                               </Avatar>
                               <Box>
                                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -1426,7 +1486,7 @@ function AdminDashboard() {
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Star sx={{ color: '#ffc107', mr: 0.5, fontSize: 16 }} />
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {fb.rating}/5
+                                {fb.rating || 0}/5
                               </Typography>
                             </Box>
                           </TableCell>
@@ -1540,7 +1600,8 @@ function AdminDashboard() {
                       src={selectedUser.user?.photoURL}
                       sx={{ width: 100, height: 100, mx: 'auto', mb: 2 }}
                     >
-                      {selectedUser.user?.displayName?.[0] || selectedUser.user?.email?.[0] || 'U'}
+                      {(selectedUser.user?.displayName && selectedUser.user.displayName[0]) || 
+                       (selectedUser.user?.email && selectedUser.user.email[0]) || 'U'}
                     </Avatar>
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                       {selectedUser.user?.displayName || 'No Name'}
@@ -1596,7 +1657,7 @@ function AdminDashboard() {
                 </Grid>
               </Grid>
               
-              {selectedUser.resumes?.length > 0 && (
+              {selectedUser.resumes && selectedUser.resumes.length > 0 && (
                 <Box sx={{ mt: 4 }}>
                   <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
                     Recent Resumes
