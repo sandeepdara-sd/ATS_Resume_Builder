@@ -110,15 +110,15 @@ function ResumePreview({
         >
           <Paper 
             sx={{ 
-              minHeight: '11in',
-              width: '8.5in',
-              maxWidth: '8.5in',
+              minHeight: '297mm',
+              width: '210mm',
+              maxWidth: '210mm',
               backgroundColor: 'white',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               overflow: 'hidden',
               borderRadius: 2,
               margin: '0 auto',
-              transform: 'scale(0.85)',
+              transform: 'scale(0.9)',
               transformOrigin: 'top center'
             }}
           >
