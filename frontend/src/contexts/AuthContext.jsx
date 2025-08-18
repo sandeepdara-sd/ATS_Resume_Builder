@@ -6,7 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   signInWithPopup,
-  googleProvider
+  GoogleAuthProvider
 } from '../firebase/config';
 import axios from 'axios';
 import { api_url } from '../helper/Helper';
@@ -135,17 +135,30 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     try {
       console.log('🔄 Attempting Google login');
-      // Use popup with proper error handling
-      const result = await signInWithPopup(auth, googleProvider);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
       console.log('✅ Google login successful');
-      return result;
+      
+      // Wait for the user state to be set by onAuthStateChanged
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Google login timeout - user state not updated'));
+        }, 10000); // 10 second timeout
+        
+        const checkUserState = () => {
+          if (user && user.uid === result.user.uid) {
+            clearTimeout(timeout);
+            resolve(result);
+          } else {
+            // Check again in 100ms
+            setTimeout(checkUserState, 100);
+          }
+        };
+        
+        checkUserState();
+      });
     } catch (error) {
       console.error('❌ Google login failed:', error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Login cancelled by user');
-      } else if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup blocked by browser. Please allow popups and try again.');
-      }
       throw error;
     }
   };
