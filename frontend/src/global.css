@@ -16,8 +16,6 @@
     font-family: Arial, Helvetica, sans-serif !important;
     color: #000000 !important;
     background: #ffffff !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
   
   .resume-container {
@@ -27,29 +25,6 @@
     padding: 0.5in !important;
     box-shadow: none !important;
     transform: none !important;
-    background: #ffffff !important;
-  }
-  
-  .section {
-    page-break-inside: avoid !important;
-    margin-bottom: 16px !important;
-  }
-  
-  .section-item {
-    page-break-inside: avoid !important;
-  }
-  
-  .item-header {
-    page-break-inside: avoid !important;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    page-break-after: avoid !important;
-    color: #000000 !important;
-  }
-  
-  p, div, span {
-    color: #000000 !important;
   }
 }
 
@@ -58,46 +33,4 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-}
-
-/* ATS-friendly table styles */
-table {
-  border-collapse: collapse !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-td {
-  vertical-align: top !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-}
-
-/* Ensure proper text alignment */
-.text-justify {
-  text-align: justify !important;
-  hyphens: none !important;
-  word-break: normal !important;
-}
-
-/* Remove any unwanted spacing */
-.no-margin {
-  margin: 0 !important;
-}
-
-.no-padding {
-  padding: 0 !important;
-}
-
-/* Ensure proper line spacing */
-.proper-spacing {
-  line-height: 1.4 !important;
-}
-
-/* ATS-friendly font rendering */
-* {
-  font-variant-ligatures: none !important;
-  font-feature-settings: normal !important;
 }
