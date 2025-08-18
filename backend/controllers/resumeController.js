@@ -339,17 +339,18 @@ export const downloadResume = async (req, res) => {
     const file = { content: htmlContent };
     const options = { 
       format: 'A4',
-      width: '8.5in',
-      height: '11in',
+      width: '210mm',
+      height: '297mm',
       printBackground: true,
       margin: {
-        top: '0.5in',
-        bottom: '0.5in',
-        left: '0.5in',
-        right: '0.5in'
+        top: '12.7mm',
+        bottom: '12.7mm',
+        left: '12.7mm',
+        right: '12.7mm'
       },
       displayHeaderFooter: false,
       preferCSSPageSize: false,
+      omitBackground: false,
       // ATS-friendly settings
       args: [
         '--no-sandbox',
@@ -360,8 +361,7 @@ export const downloadResume = async (req, res) => {
         '--no-zygote',
         '--single-process',
         '--disable-extensions',
-        '--disable-web-security',
-        '--font-render-hinting=none'
+        '--disable-web-security'
       ]
     };
 

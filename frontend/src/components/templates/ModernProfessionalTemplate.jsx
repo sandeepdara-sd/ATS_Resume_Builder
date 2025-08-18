@@ -99,7 +99,7 @@ function ModernProfessionalTemplate({ resumeData }) {
       {/* Header */}
       <Box 
         sx={{ 
-          textAlign: 'center', 
+          textAlign: 'center',
           mb: layout.sectionSpacing,
           pb: layout.itemSpacing,
           borderBottom: '1px solid #cccccc'
@@ -112,7 +112,7 @@ function ModernProfessionalTemplate({ resumeData }) {
             color: '#000000',
             mb: 1,
             fontSize: layout.nameSize,
-            letterSpacing: '0.5px',
+            letterSpacing: '0.3px',
             lineHeight: 1.2,
             fontFamily: 'inherit'
           }}
@@ -122,12 +122,12 @@ function ModernProfessionalTemplate({ resumeData }) {
         
         <Box sx={{ mb: 0.75 }}>
           {resumeData.personalDetails?.email && (
-            <Typography component="span" sx={{ color: '#333333', fontSize: layout.smallSize, mr: 1 }}>
+            <Typography component="span" sx={{ color: '#333333', fontSize: layout.smallSize, mr: 2 }}>
               {resumeData.personalDetails.email}
             </Typography>
           )}
           {resumeData.personalDetails?.phone && (
-            <Typography component="span" sx={{ color: '#333333', fontSize: layout.smallSize, mr: 1 }}>
+            <Typography component="span" sx={{ color: '#333333', fontSize: layout.smallSize, mr: 2 }}>
               {resumeData.personalDetails.phone}
             </Typography>
           )}
@@ -140,12 +140,12 @@ function ModernProfessionalTemplate({ resumeData }) {
         
         <Box>
           {resumeData.personalDetails?.linkedin && (
-            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 1 }}>
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
               LinkedIn: {formatLink(resumeData.personalDetails.linkedin, 'linkedin')}
             </Typography>
           )}
           {resumeData.personalDetails?.github && (
-            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 1 }}>
+            <Typography component="span" sx={{ color: '#000000', fontSize: layout.smallSize, mr: 2 }}>
               GitHub: {formatLink(resumeData.personalDetails.github, 'github')}
             </Typography>
           )}

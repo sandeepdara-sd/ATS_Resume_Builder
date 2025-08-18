@@ -71,13 +71,16 @@ function SignupPage() {
 
     try {
       await loginWithGoogle();
-      setLoginSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
+      // Navigation will be handled by AuthContext after successful signup
     } catch (error) {
-      setError('Failed to sign up with Google.');
-    } finally {
+      console.error('Google signup error:', error);
+      if (error.message === 'Login cancelled by user') {
+        setError('Google signup was cancelled. Please try again.');
+      } else if (error.message.includes('popup blocked')) {
+        setError('Popup was blocked by your browser. Please allow popups and try again.');
+      } else {
+        setError('Failed to sign up with Google. Please try again.');
+      }
       setLoading(false);
     }
   };

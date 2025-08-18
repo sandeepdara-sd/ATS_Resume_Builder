@@ -60,10 +60,16 @@ function LoginPage() {
 
     try {
       await loginWithGoogle();
-      // Don't use setTimeout - navigate immediately after successful login
-      navigate('/dashboard');
+      // Navigation will be handled by AuthContext after successful login
     } catch (error) {
-      setError('Failed to log in with Google.');
+      console.error('Google login error:', error);
+      if (error.message === 'Login cancelled by user') {
+        setError('Google login was cancelled. Please try again.');
+      } else if (error.message.includes('popup blocked')) {
+        setError('Popup was blocked by your browser. Please allow popups and try again.');
+      } else {
+        setError('Failed to log in with Google. Please try again.');
+      }
       setLoading(false);
     }
   };
