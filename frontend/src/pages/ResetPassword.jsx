@@ -62,16 +62,19 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      await axios.post(`${api_url}/api/reset-password`, {
+      console.log('🔄 Attempting password reset for:', email);
+      const response = await axios.post(`${api_url}/api/reset-password`, {
         token,
         email,
         newPassword: password
       });
+      console.log('✅ Password reset response:', response.data);
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (error) {
+      console.error('❌ Password reset error:', error);
       setError(error.response?.data?.error || 'Failed to reset password');
     } finally {
       setLoading(false);

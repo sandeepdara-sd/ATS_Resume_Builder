@@ -36,9 +36,11 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      await axios.post(`${api_url}/api/forgot-password`, { email });
+      const response = await axios.post(`${api_url}/api/forgot-password`, { email });
+      console.log('✅ Forgot password response:', response.data);
       setSuccess(true);
     } catch (error) {
+      console.error('❌ Forgot password error:', error);
       setError(error.response?.data?.error || 'Failed to send reset email');
     } finally {
       setLoading(false);

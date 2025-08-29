@@ -15,6 +15,10 @@ const createEmailTransporter = () => {
     console.log('⚠️ Email credentials not configured');
     console.log('EMAIL_USER:', emailUser ? 'Set' : 'Missing');
     console.log('EMAIL_PASS:', emailPass ? 'Set' : 'Missing');
+    console.log('💡 To configure email:');
+    console.log('   1. Enable 2FA on Gmail');
+    console.log('   2. Generate App Password in Google Account Settings');
+    console.log('   3. Set EMAIL_USER and EMAIL_PASS in environment variables');
     return null;
   }
 
@@ -30,6 +34,10 @@ const createEmailTransporter = () => {
       user: emailUser,
       pass: emailPass
     },
+    pool: true,
+    maxConnections: 1,
+    rateDelta: 20000,
+    rateLimit: 5,
     tls: {
       rejectUnauthorized: false
     }
@@ -129,7 +137,11 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       console.log('❌ User not found:', email);
-      return res.status(404).json({ error: 'User not found' });
+      // Don't reveal if user exists for security reasons
+      return res.json({ 
+        message: 'If an account with that email exists, we have sent a password reset link.',
+        email: email 
+      });
     }
 
     console.log('✅ User found:', user.email);
@@ -162,9 +174,9 @@ export const forgotPassword = async (req, res) => {
     if (!transporter) {
       console.log('⚠️ Email credentials not configured. Reset URL:', resetUrl);
       return res.json({ 
-        message: 'Password reset link generated (email service not configured)',
+        message: 'If an account with that email exists, we have sent a password reset link.',
         email: email,
-        resetUrl: resetUrl // Remove this in production
+        resetUrl: process.env.NODE_ENV === 'development' ? resetUrl : undefined
       });
     }
 
@@ -251,7 +263,7 @@ export const forgotPassword = async (req, res) => {
       console.log('✅ Password reset email sent successfully:', info.messageId);
 
       res.json({ 
-        message: 'Password reset email sent successfully',
+        message: 'If an account with that email exists, we have sent a password reset link.',
         email: email 
       });
 
@@ -292,6 +304,8 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, email, newPassword } = req.body;
 
+    console.log('🔄 Reset password request for:', email);
+    console.log('🔍 Token provided:', token ? 'Yes' : 'No');
     if (!token || !email || !newPassword) {
       return res.status(400).json({ error: 'Token, email, and new password are required' });
     }
@@ -301,58 +315,62 @@ export const resetPassword = async (req, res) => {
     }
 
     // Find valid reset token
-    // Find valid reset token
-const resetRecord = await PasswordReset.findOne({
-  token,
-  email,
-  used: false,
-  expiresAt: { $gt: new Date() }
-});
+    const resetRecord = await PasswordReset.findOne({
+      token,
+      email,
+      used: false,
+      expiresAt: { $gt: new Date() }
+    });
 
-if (!resetRecord) {
-  return res.status(400).json({ error: 'Invalid or expired reset token' });
-}
-
-// Find user and update password
-const user = await User.findById(resetRecord.userId);
-if (!user) {
-  return res.status(404).json({ error: 'User not found' });
-}
-
-// FIXED: Update password in Firebase Auth first if user has firebaseUid
-const canVerifyFirebase = await canVerifyFirebaseTokens();
-
-if (canVerifyFirebase && user.firebaseUid) {
-  try {
-    console.log('🔄 Fetching Firebase user:', user.firebaseUid);
-    const firebaseUser = await admin.auth().getUser(user.firebaseUid);
-    console.log('✅ Firebase user found:', firebaseUser.email);
+    console.log('🔍 Reset record found:', resetRecord ? 'Yes' : 'No');
     
-    console.log('🔄 Updating password in Firebase Auth for user:', user.firebaseUid);
-    await admin.auth().updateUser(user.firebaseUid, {
-      password: newPassword
-    });
-    console.log('✅ Firebase Auth password updated successfully');
-  } catch (firebaseError) {
-    console.error('❌ Failed to update Firebase Auth password:', firebaseError);
-    return res.status(500).json({ 
-      error: 'Failed to update password in Firebase Auth',
-      details: process.env.NODE_ENV === 'development' ? firebaseError.message : undefined
-    });
-  }
-} else if (user.firebaseUid) {
-  console.log('⚠️ Firebase Admin not configured, skipping Firebase password update');
-  return res.status(500).json({ error: 'Firebase configuration required for password reset' });
-} else {
-  console.log('⚠️ User does not have Firebase UID, updating MongoDB only');
-}
+    if (!resetRecord) {
+      console.log('❌ Invalid or expired reset token for:', email);
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
 
-// Update password in MongoDB after successful Firebase update
-const hashedPassword = await bcrypt.hash(newPassword, 12);
-user.password = hashedPassword;
-user.updatedAt = new Date();
-await user.save();
+    // Find user and update password
+    const user = await User.findById(resetRecord.userId);
+    if (!user) {
+      console.log('❌ User not found for reset token:', resetRecord.userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
 
+    console.log('✅ User found for password reset:', user.email);
+
+    // FIXED: Update password in Firebase Auth first if user has firebaseUid
+    const canVerifyFirebase = canVerifyFirebaseTokens();
+
+    if (canVerifyFirebase && user.firebaseUid) {
+      try {
+        console.log('🔄 Fetching Firebase user:', user.firebaseUid);
+        const firebaseUser = await admin.auth().getUser(user.firebaseUid);
+        console.log('✅ Firebase user found:', firebaseUser.email);
+        
+        console.log('🔄 Updating password in Firebase Auth for user:', user.firebaseUid);
+        await admin.auth().updateUser(user.firebaseUid, {
+          password: newPassword
+        });
+        console.log('✅ Firebase Auth password updated successfully');
+      } catch (firebaseError) {
+        console.error('❌ Failed to update Firebase Auth password:', firebaseError);
+        return res.status(500).json({ 
+          error: 'Failed to update password in Firebase Auth',
+          details: process.env.NODE_ENV === 'development' ? firebaseError.message : undefined
+        });
+      }
+    } else if (user.firebaseUid) {
+      console.log('⚠️ Firebase Admin not configured, skipping Firebase password update');
+      return res.status(500).json({ error: 'Firebase configuration required for password reset' });
+    } else {
+      console.log('⚠️ User does not have Firebase UID, updating MongoDB only');
+    }
+
+    // Update password in MongoDB after successful Firebase update
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.updatedAt = new Date();
+    await user.save();
     // Mark reset token as used
     resetRecord.used = true;
     await resetRecord.save();
@@ -360,9 +378,9 @@ await user.save();
     console.log('✅ Password reset successful for:', email);
 
     res.json({ 
-  message: 'Password reset successful',
-  firebaseUpdated: canVerifyFirebase && user.firebaseUid ? true : false
-});
+      message: 'Password reset successful',
+      firebaseUpdated: canVerifyFirebase && user.firebaseUid ? true : false
+    });
   } catch (error) {
     console.error('❌ Reset password error:', error);
     res.status(500).json({ error: 'Failed to reset password' });

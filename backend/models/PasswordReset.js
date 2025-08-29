@@ -10,12 +10,14 @@ const passwordResetSchema = new mongoose.Schema({
   token: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   expiresAt: {
     type: Date,
@@ -34,5 +36,9 @@ const passwordResetSchema = new mongoose.Schema({
 
 // Auto-delete expired tokens
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// Index for faster queries
+passwordResetSchema.index({ email: 1, used: 1 });
+passwordResetSchema.index({ token: 1, used: 1 });
 
 export default mongoose.model('PasswordReset', passwordResetSchema);

@@ -261,6 +261,28 @@ app.get('/api/health', async (req, res) => {
     // Check if admin exists
     const adminExists = await Admin.findOne({ email: 'admin@resumebuilder.com' });
     
+    // Test email configuration
+    const emailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+    let emailStatus = 'Not Configured';
+    
+    if (emailConfigured) {
+      try {
+        const nodemailer = await import('nodemailer');
+        const testTransporter = nodemailer.default.createTransporter({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+          }
+        });
+        await testTransporter.verify();
+        emailStatus = 'Configured & Working';
+      } catch (emailError) {
+        emailStatus = 'Configured but Error';
+        console.log('⚠️ Email test failed:', emailError.message);
+      }
+    }
+    
     res.json({ 
       status: 'OK', 
       message: 'ATS Resume Builder Server with Admin Dashboard is running',
@@ -271,7 +293,7 @@ app.get('/api/health', async (req, res) => {
         firebase: 'Initialized',
         ai: 'Available',
         admin: adminExists ? 'Admin User Created' : 'Admin User Missing',
-        email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? 'Configured' : 'Not Configured'
+        email: emailStatus
       },
       version: '2.0.0',
       cors: {
