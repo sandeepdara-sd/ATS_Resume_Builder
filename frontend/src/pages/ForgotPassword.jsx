@@ -41,7 +41,13 @@ function ForgotPassword() {
       setSuccess(true);
     } catch (error) {
       console.error('❌ Forgot password error:', error);
-      setError(error.response?.data?.error || 'Failed to send reset email');
+      
+      // Handle specific error cases
+      if (error.response?.data?.isGoogleUser) {
+        setError('This account was created with Google. Please sign in using the "Continue with Google" button instead.');
+      } else {
+        setError(error.response?.data?.error || 'Failed to send reset email');
+      }
     } finally {
       setLoading(false);
     }

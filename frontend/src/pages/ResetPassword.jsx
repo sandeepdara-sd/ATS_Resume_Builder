@@ -75,7 +75,22 @@ function ResetPassword() {
       }, 3000);
     } catch (error) {
       console.error('❌ Password reset error:', error);
-      setError(error.response?.data?.error || 'Failed to reset password');
+      
+      // Handle specific error cases
+      if (error.response?.data?.isGoogleUser) {
+        setError('This account uses Google sign-in. Please sign in with Google instead of resetting your password.');
+      } else if (error.response?.status === 400) {
+        const errorMsg = error.response.data?.error;
+        if (errorMsg?.includes('expired')) {
+          setError('This reset link has expired. Please request a new password reset.');
+        } else if (errorMsg?.includes('used')) {
+          setError('This reset link has already been used. Please request a new password reset if needed.');
+        } else {
+          setError(errorMsg || 'Invalid reset link. Please request a new password reset.');
+        }
+      } else {
+        setError('Failed to reset password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

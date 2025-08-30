@@ -146,6 +146,27 @@ export const forgotPassword = async (req, res) => {
 
     console.log('✅ User found:', user.email);
 
+    // Check if user registered with Google (has firebaseUid but no password or password is 'firebase-auth')
+    if (user.firebaseUid && (user.password === 'firebase-auth' || !user.password)) {
+      console.log('❌ User registered with Google, password reset not allowed:', email);
+      return res.status(400).json({ 
+        error: 'Password reset is not available for Google accounts. Please sign in with Google.',
+        isGoogleUser: true
+      });
+    }
+
+    // Additional check: if user has firebaseUid, they likely used Google sign-in
+    if (user.firebaseUid) {
+      console.log('⚠️ User has Firebase UID, checking if they can reset password:', email);
+      // Allow password reset only if they have a real password (not 'firebase-auth')
+      if (user.password === 'firebase-auth') {
+        return res.status(400).json({ 
+          error: 'This account was created with Google. Please sign in with Google instead.',
+          isGoogleUser: true
+        });
+      }
+    }
+
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     
@@ -157,10 +178,12 @@ export const forgotPassword = async (req, res) => {
       email: user.email,
       token: resetToken,
       userId: user._id,
-      expiresAt: new Date(Date.now() + 3600000) // 1 hour
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+      createdAt: new Date() // Explicitly set creation time
     });
 
     console.log('✅ Reset token created for:', user.email);
+    console.log('🕐 Token expires at:', new Date(Date.now() + 3600000).toISOString());
 
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${email}`;
@@ -236,7 +259,7 @@ export const forgotPassword = async (req, res) => {
             
             <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
               <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⚠️ Important:</strong> This link will expire in 1 hour for security reasons.
+                <strong>⚠️ Important:</strong> This link will expire in exactly 1 hour (${new Date(Date.now() + 3600000).toLocaleString()}) for security reasons.
               </p>
             </div>
             
@@ -306,6 +329,8 @@ export const resetPassword = async (req, res) => {
 
     console.log('🔄 Reset password request for:', email);
     console.log('🔍 Token provided:', token ? 'Yes' : 'No');
+    console.log('🕐 Current time:', new Date().toISOString());
+    
     if (!token || !email || !newPassword) {
       return res.status(400).json({ error: 'Token, email, and new password are required' });
     }
@@ -314,19 +339,39 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
-    // Find valid reset token
+    // Find valid reset token with explicit expiration check
+    const currentTime = new Date();
     const resetRecord = await PasswordReset.findOne({
       token,
       email,
       used: false,
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: currentTime }
     });
 
     console.log('🔍 Reset record found:', resetRecord ? 'Yes' : 'No');
     
+    if (resetRecord) {
+      console.log('🕐 Token created at:', resetRecord.createdAt);
+      console.log('🕐 Token expires at:', resetRecord.expiresAt);
+      console.log('🕐 Current time:', currentTime);
+      console.log('🕐 Time remaining:', Math.round((resetRecord.expiresAt - currentTime) / 1000 / 60), 'minutes');
+    }
+    
     if (!resetRecord) {
-      console.log('❌ Invalid or expired reset token for:', email);
-      return res.status(400).json({ error: 'Invalid or expired reset token' });
+      // Check if token exists but is expired or used
+      const expiredRecord = await PasswordReset.findOne({ token, email });
+      if (expiredRecord) {
+        if (expiredRecord.used) {
+          console.log('❌ Reset token already used for:', email);
+          return res.status(400).json({ error: 'This reset link has already been used. Please request a new password reset.' });
+        } else if (expiredRecord.expiresAt <= currentTime) {
+          console.log('❌ Reset token expired for:', email, 'Expired at:', expiredRecord.expiresAt);
+          return res.status(400).json({ error: 'This reset link has expired. Please request a new password reset.' });
+        }
+      }
+      
+      console.log('❌ Invalid reset token for:', email);
+      return res.status(400).json({ error: 'Invalid reset link. Please request a new password reset.' });
     }
 
     // Find user and update password
@@ -337,6 +382,15 @@ export const resetPassword = async (req, res) => {
     }
 
     console.log('✅ User found for password reset:', user.email);
+    
+    // Double-check this is not a Google user
+    if (user.firebaseUid && user.password === 'firebase-auth') {
+      console.log('❌ Attempted password reset for Google user:', user.email);
+      return res.status(400).json({ 
+        error: 'This account uses Google sign-in. Password reset is not available.',
+        isGoogleUser: true
+      });
+    }
 
     // FIXED: Update password in Firebase Auth first if user has firebaseUid
     const canVerifyFirebase = canVerifyFirebaseTokens();
@@ -371,11 +425,14 @@ export const resetPassword = async (req, res) => {
     user.password = hashedPassword;
     user.updatedAt = new Date();
     await user.save();
+    
     // Mark reset token as used
     resetRecord.used = true;
+    resetRecord.usedAt = new Date();
     await resetRecord.save();
 
     console.log('✅ Password reset successful for:', email);
+    console.log('🕐 Reset completed at:', new Date().toISOString());
 
     res.json({ 
       message: 'Password reset successful',
@@ -452,13 +509,18 @@ export const syncFirebaseUser = async (req, res) => {
           firebaseUid: firebaseUser.uid,
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
           photoURL: firebaseUser.photoURL,
-          password: 'firebase-auth'
+          password: 'firebase-auth', // Mark as Google user
+          isGoogleUser: true
         });
         await user.save();
       } else {
         user.firebaseUid = firebaseUser.uid;
         user.displayName = firebaseUser.displayName || user.displayName;
         user.photoURL = firebaseUser.photoURL || user.photoURL;
+        user.isGoogleUser = true;
+        if (!user.password || user.password === '') {
+          user.password = 'firebase-auth';
+        }
         await user.save();
       }
 
@@ -495,13 +557,18 @@ export const syncFirebaseUser = async (req, res) => {
         firebaseUid: firebaseUser.uid,
         displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
         photoURL: firebaseUser.photoURL,
-        password: 'firebase-auth'
+        password: 'firebase-auth', // Mark as Google user
+        isGoogleUser: true
       });
       await user.save();
     } else {
       user.firebaseUid = firebaseUser.uid;
       user.displayName = firebaseUser.displayName || user.displayName;
       user.photoURL = firebaseUser.photoURL || user.photoURL;
+      user.isGoogleUser = true;
+      if (!user.password || user.password === '') {
+        user.password = 'firebase-auth';
+      }
       await user.save();
     }
 

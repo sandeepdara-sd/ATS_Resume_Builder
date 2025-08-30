@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   displayName: String,
   firebaseUid: { type: String, unique: true, sparse: true },
+  isGoogleUser: { type: Boolean, default: false },
   photoURL: String,
   phone: String,
   location: String,

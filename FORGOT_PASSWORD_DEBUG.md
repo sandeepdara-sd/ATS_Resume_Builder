@@ -2,6 +2,13 @@
 
 ## Common Issues and Solutions
 
+### 0. Google Users Cannot Reset Password
+
+**Important**: Users who signed up with Google cannot use the forgot password feature.
+- Google users should always sign in using "Continue with Google"
+- The system will show an appropriate error message for Google users
+- Only users who registered with email/password can reset their passwords
+
 ### 1. Email Configuration Issues
 
 **Problem**: Email not being sent
@@ -60,9 +67,11 @@ Enable detailed logging by checking server console for:
 ### 6. Security Improvements Made
 
 1. **No User Enumeration**: Same response whether user exists or not
-2. **Token Validation**: Proper expiration and usage tracking
+2. **Token Validation**: Proper expiration (exactly 1 hour) and usage tracking
 3. **Rate Limiting**: Prevent spam requests
 4. **Secure Headers**: Proper email templates
+5. **Google User Protection**: Prevents password reset for Google sign-in users
+6. **Enhanced Expiration**: Tokens expire exactly after 1 hour with detailed logging
 
 ### 7. Testing Steps
 
@@ -90,7 +99,10 @@ Enable detailed logging by checking server console for:
 - `Email authentication failed` → Check Gmail app password
 - `Could not connect to email server` → Check internet/firewall
 - `Invalid or expired reset token` → Token used or expired
+- `This reset link has expired` → Token is older than 1 hour
+- `This reset link has already been used` → Token was already used once
 - `User not found` → Email doesn't exist in database
+- `Password reset is not available for Google accounts` → User signed up with Google
 - `Firebase configuration required` → Firebase setup issue
 
 ### 9. Production Deployment Notes
