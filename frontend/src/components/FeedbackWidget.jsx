@@ -51,6 +51,7 @@ function FeedbackWidget() {
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [originalGeneralMessage, setOriginalGeneralMessage] = useState('');
+  const [userDetails, setUserDetails] = useState({ name: '', email: '' }); // Added state for user details
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [userEmail, setUserEmail] = useState('');
   const [feedbackData, setFeedbackData] = useState({
@@ -81,21 +82,58 @@ function FeedbackWidget() {
     5: 'Excellent'
   };
 
+  // Fetch user details from your backend API
+  const fetchUserDetails = useCallback(async (user, idToken) => {
+    try {
+      const response = await axios.get(`${api_url}/api/users/${user.uid}`, {
+        headers: {
+          Authorization: `Bearer ${idToken}`
+        }
+      });
+       console.log(response.data.user)
+      if (response.data) {
+        const userData = response.data.user;
+        const userName = userData.name || userData.displayName || userData.firstName || user.displayName || 'User';
+        const userEmail = userData.email || user.email || '';
+        
+        setUserDetails({
+          name: userName,
+          email: userEmail
+        });
+        
+        return { name: userName, email: userEmail };
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      // Fallback to Firebase user data
+      const fallbackName = user.displayName || 'User';
+      const fallbackEmail = user.email || '';
+      
+      setUserDetails({
+        name: fallbackName,
+        email: fallbackEmail
+      });
+      
+      return { name: fallbackName, email: fallbackEmail };
+    }
+  }, []);
+
   // Complete reset function
   const resetComponent = useCallback(() => {
-  setStep(1);
-  setLoading(false);
-  setDataLoaded(false);
-  setSubmitting(false);
-  setOriginalGeneralMessage(''); // Add this line
-  setFeedbackData({
-    type: '',
-    rating: 5,
-    message: '',
-    email: '',
-    category: ''
-  });
-}, []);
+    setStep(1);
+    setLoading(false);
+    setDataLoaded(false);
+    setSubmitting(false);
+    setOriginalGeneralMessage('');
+    setUserDetails({ name: '', email: '' }); // Reset user details
+    setFeedbackData({
+      type: '',
+      rating: 5,
+      message: '',
+      email: '',
+      category: ''
+    });
+  }, []);
 
   // Load user's previous feedback when dialog opens
   const loadUserFeedback = useCallback(async () => {
@@ -111,9 +149,13 @@ function FeedbackWidget() {
       }
 
       const idToken = await user.getIdToken();
-      const currentUserEmail = user.email || '';
+      
+      // Fetch user details first
+      const userData = await fetchUserDetails(user, idToken);
+      const currentUserEmail = userData.email;
       setUserEmail(currentUserEmail);
 
+      // Then fetch feedback data
       const response = await axios.get(`${api_url}/api/feedback`, {
         headers: {
           Authorization: `Bearer ${idToken}`
@@ -132,9 +174,6 @@ function FeedbackWidget() {
             email: previousFeedback.email || currentUserEmail,
             category: previousFeedback.category || ''
         });
-        
-        // **FIXED**: Set step after data is loaded, with a small delay to ensure proper rendering
-        
       } else {
         // No previous feedback, set email from user info
         setFeedbackData(prev => ({
@@ -150,6 +189,8 @@ function FeedbackWidget() {
       const auth = getAuth();
       const user = auth.currentUser;
       if (user) {
+        const idToken = await user.getIdToken();
+        await fetchUserDetails(user, idToken); // Fetch user details even on error
         const currentUserEmail = user.email || '';
         setUserEmail(currentUserEmail);
         setFeedbackData(prev => ({
@@ -161,7 +202,7 @@ function FeedbackWidget() {
     } finally {
       setLoading(false);
     }
-  }, [open, dataLoaded]);
+  }, [open, dataLoaded, fetchUserDetails]);
 
   useEffect(() => {
     if (open) {
@@ -171,7 +212,6 @@ function FeedbackWidget() {
       resetComponent();
     }
   }, [open, loadUserFeedback, resetComponent]);
-
 
   const handleSubmit = async () => {
     // Validation
@@ -201,12 +241,8 @@ function FeedbackWidget() {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      // console.log(user.displayName);
-      
 
       const idToken = await user.getIdToken();
-      
-      
 
       if (feedbackData.type === 'general') {
         // Send feedback to your MongoDB API
@@ -243,18 +279,18 @@ function FeedbackWidget() {
           }
         );
 
-        // Then send via EmailJS
+        // Then send via EmailJS using the fetched user details
         await emailjs.send(
           VITE_EMAIL_SERVICE,
           VITE_EMAIL_TEMPLATE,
           {
-            name: user.displayName || 'Anonymous',
+            name: userDetails.name || 'Anonymous', // Use fetched name
             message: feedbackData.message,
             category: feedbackData.category,
             email: feedbackData.email,
             rating: feedbackData.rating,
             type: feedbackData.type,
-            userEmail: user.email
+            userEmail: userDetails.email || user.email // Use fetched email
           },
           VITE_EMAIL_API
         );
@@ -301,12 +337,12 @@ function FeedbackWidget() {
   };
 
   const handleFeedbackTypeSelect = (typeValue) => {
-  setFeedbackData(prev => ({ 
-    ...prev, 
-    type: typeValue,
-    message: typeValue === 'general' ? originalGeneralMessage : ''
-  }));
-};
+    setFeedbackData(prev => ({ 
+      ...prev, 
+      type: typeValue,
+      message: typeValue === 'general' ? originalGeneralMessage : ''
+    }));
+  };
 
   const handleCategorySelect = (category) => {
     setFeedbackData(prev => ({ 
@@ -316,314 +352,286 @@ function FeedbackWidget() {
   };
 
   const selectedType = feedbackTypes.find(type => type.value === feedbackData.type);
-
-  // **FIXED**: More precise condition for showing content
   const shouldShowContent = !loading && dataLoaded;
 
   return (
     <>
-      {/* Floating Feedback Button */}
-      {/* <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 1, type: "spring", stiffness: 260, damping: 20 }}
+      {/* Floating Feedback Button with enhanced animations */}
+      <motion.div
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ 
+          delay: 0.8, 
+          type: 'spring', 
+          stiffness: 260, 
+          damping: 20,
+          duration: 0.6
+        }}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 1000,
+          transformOrigin: 'center bottom',
+        }}
       >
+        {/* Ripple effect background */}
+        <div className="ripple-container">
+          <div className="ripple ripple-1"></div>
+          <div className="ripple ripple-2"></div>
+          <div className="ripple ripple-3"></div>
+        </div>
+
         <Fab
           color="primary"
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-              transform: 'scale(1.1)',
-            },
-            transition: 'all 0.3s ease',
-            zIndex: 1000,
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
-          }}
           onClick={() => setOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #ff5252 0%, #26a69a 50%, #2196f3 100%)',
+              transform: 'scale(1.15) rotate(5deg)',
+            },
+            '&:active': {
+              transform: 'scale(0.95)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 8px 25px rgba(255, 107, 107, 0.4), 0 0 0 0 rgba(255, 107, 107, 0.7)',
+            animation: 'bounceAttention 4s ease-in-out infinite, colorShift 6s ease-in-out infinite',
+            position: 'relative',
+            overflow: 'visible',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: '-2px',
+              left: '-2px',
+              right: '-2px',
+              bottom: '-2px',
+              background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #ff6b6b)',
+              borderRadius: '50%',
+              zIndex: -1,
+              animation: 'rotate 3s linear infinite',
+              opacity: 0.8,
+            },
+            '&::after': {
+              content: '"💬"',
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              fontSize: '16px',
+              animation: 'bounce 2s ease-in-out infinite',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+            }
+          }}
         >
-          <Feedback />
+          <motion.div
+            animate={{ 
+              rotate: [0, 10, -10, 0],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ 
+              duration: 2,
+              repeat: Infinity,
+              repeatDelay: 3
+            }}
+          >
+            <Feedback />
+          </motion.div>
         </Fab>
-      </motion.div> */}
-      <motion.div
-  initial={{ scale: 0, rotate: -180 }}
-  animate={{ scale: 1, rotate: 0 }}
-  transition={{ 
-    delay: 0.8, 
-    type: 'spring', 
-    stiffness: 260, 
-    damping: 20,
-    duration: 0.6
-  }}
-  style={{
-    position: 'fixed',
-    bottom: 24,
-    right: 24,
-    zIndex: 1000,
-    transformOrigin: 'center bottom',
-  }}
->
-  {/* Ripple effect background */}
-  <div className="ripple-container">
-    <div className="ripple ripple-1"></div>
-    <div className="ripple ripple-2"></div>
-    <div className="ripple ripple-3"></div>
-  </div>
 
-  <Fab
-    color="primary"
-    onClick={() => setOpen(true)}
-    sx={{
-      background: 'linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%)',
-      '&:hover': {
-        background: 'linear-gradient(135deg, #ff5252 0%, #26a69a 50%, #2196f3 100%)',
-        transform: 'scale(1.15) rotate(5deg)',
-      },
-      '&:active': {
-        transform: 'scale(0.95)',
-      },
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      boxShadow: '0 8px 25px rgba(255, 107, 107, 0.4), 0 0 0 0 rgba(255, 107, 107, 0.7)',
-      animation: 'bounceAttention 4s ease-in-out infinite, colorShift 6s ease-in-out infinite',
-      position: 'relative',
-      overflow: 'visible',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: '-2px',
-        left: '-2px',
-        right: '-2px',
-        bottom: '-2px',
-        background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #ff6b6b)',
-        borderRadius: '50%',
-        zIndex: -1,
-        animation: 'rotate 3s linear infinite',
-        opacity: 0.8,
-      },
-      '&::after': {
-        content: '"💬"',
-        position: 'absolute',
-        top: '-8px',
-        right: '-8px',
-        fontSize: '16px',
-        animation: 'bounce 2s ease-in-out infinite',
-        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-      }
-    }}
-  >
-    <motion.div
-      animate={{ 
-        rotate: [0, 10, -10, 0],
-        scale: [1, 1.1, 1]
-      }}
-      transition={{ 
-        duration: 2,
-        repeat: Infinity,
-        repeatDelay: 3
-      }}
-    >
-      <Feedback />
-    </motion.div>
-  </Fab>
+        {/* Floating particles */}
+        <div className="particles">
+          <div className="particle particle-1">✨</div>
+          <div className="particle particle-2">💫</div>
+          <div className="particle particle-3">⭐</div>
+        </div>
+      </motion.div>
 
-  {/* Floating particles */}
-  <div className="particles">
-    <div className="particle particle-1">✨</div>
-    <div className="particle particle-2">💫</div>
-    <div className="particle particle-3">⭐</div>
-  </div>
-</motion.div>
+      <style>
+        {`
+          .ripple-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+          }
 
-<style>
-  {`
-    .ripple-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
+          .ripple {
+            position: absolute;
+            border: 2px solid rgba(255, 107, 107, 0.6);
+            border-radius: 50%;
+            animation: rippleEffect 3s ease-out infinite;
+          }
 
-    .ripple {
-      position: absolute;
-      border: 2px solid rgba(255, 107, 107, 0.6);
-      border-radius: 50%;
-      animation: rippleEffect 3s ease-out infinite;
-    }
+          .ripple-1 {
+            width: 60px;
+            height: 60px;
+            margin: -30px;
+            animation-delay: 0s;
+          }
 
-    .ripple-1 {
-      width: 60px;
-      height: 60px;
-      margin: -30px;
-      animation-delay: 0s;
-    }
+          .ripple-2 {
+            width: 60px;
+            height: 60px;
+            margin: -30px;
+            animation-delay: 1s;
+          }
 
-    .ripple-2 {
-      width: 60px;
-      height: 60px;
-      margin: -30px;
-      animation-delay: 1s;
-    }
+          .ripple-3 {
+            width: 60px;
+            height: 60px;
+            margin: -30px;
+            animation-delay: 2s;
+          }
 
-    .ripple-3 {
-      width: 60px;
-      height: 60px;
-      margin: -30px;
-      animation-delay: 2s;
-    }
+          @keyframes rippleEffect {
+            0% {
+              transform: scale(0.8);
+              opacity: 1;
+            }
+            100% {
+              transform: scale(2.5);
+              opacity: 0;
+            }
+          }
 
-    @keyframes rippleEffect {
-      0% {
-        transform: scale(0.8);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(2.5);
-        opacity: 0;
-      }
-    }
+          @keyframes bounceAttention {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0) scale(1);
+            }
+            10% {
+              transform: translateY(-8px) scale(1.05);
+            }
+            30% {
+              transform: translateY(-4px) scale(1.02);
+            }
+            60% {
+              transform: translateY(-2px) scale(1.01);
+            }
+          }
 
-    @keyframes bounceAttention {
-      0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0) scale(1);
-      }
-      10% {
-        transform: translateY(-8px) scale(1.05);
-      }
-      30% {
-        transform: translateY(-4px) scale(1.02);
-      }
-      60% {
-        transform: translateY(-2px) scale(1.01);
-      }
-    }
+          @keyframes colorShift {
+            0% {
+              filter: hue-rotate(0deg) brightness(1);
+            }
+            25% {
+              filter: hue-rotate(90deg) brightness(1.1);
+            }
+            50% {
+              filter: hue-rotate(180deg) brightness(1.2);
+            }
+            75% {
+              filter: hue-rotate(270deg) brightness(1.1);
+            }
+            100% {
+              filter: hue-rotate(360deg) brightness(1);
+            }
+          }
 
-    @keyframes colorShift {
-      0% {
-        filter: hue-rotate(0deg) brightness(1);
-      }
-      25% {
-        filter: hue-rotate(90deg) brightness(1.1);
-      }
-      50% {
-        filter: hue-rotate(180deg) brightness(1.2);
-      }
-      75% {
-        filter: hue-rotate(270deg) brightness(1.1);
-      }
-      100% {
-        filter: hue-rotate(360deg) brightness(1);
-      }
-    }
+          @keyframes rotate {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
 
-    @keyframes rotate {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
+          @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0);
+            }
+            40% {
+              transform: translateY(-10px);
+            }
+            60% {
+              transform: translateY(-5px);
+            }
+          }
 
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-      }
-      40% {
-        transform: translateY(-10px);
-      }
-      60% {
-        transform: translateY(-5px);
-      }
-    }
+          .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+          }
 
-    .particles {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
+          .particle {
+            position: absolute;
+            font-size: 12px;
+            opacity: 0;
+            animation: particleFloat 4s ease-in-out infinite;
+          }
 
-    .particle {
-      position: absolute;
-      font-size: 12px;
-      opacity: 0;
-      animation: particleFloat 4s ease-in-out infinite;
-    }
+          .particle-1 {
+            top: -10px;
+            left: -10px;
+            animation-delay: 0s;
+          }
 
-    .particle-1 {
-      top: -10px;
-      left: -10px;
-      animation-delay: 0s;
-    }
+          .particle-2 {
+            top: -15px;
+            right: -10px;
+            animation-delay: 1.5s;
+          }
 
-    .particle-2 {
-      top: -15px;
-      right: -10px;
-      animation-delay: 1.5s;
-    }
+          .particle-3 {
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation-delay: 3s;
+          }
 
-    .particle-3 {
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      animation-delay: 3s;
-    }
+          @keyframes particleFloat {
+            0% {
+              opacity: 0;
+              transform: translateY(0) scale(0.5);
+            }
+            10% {
+              opacity: 1;
+              transform: translateY(-5px) scale(1);
+            }
+            90% {
+              opacity: 1;
+              transform: translateY(-15px) scale(1);
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(-25px) scale(0.5);
+            }
+          }
 
-    @keyframes particleFloat {
-      0% {
-        opacity: 0;
-        transform: translateY(0) scale(0.5);
-      }
-      10% {
-        opacity: 1;
-        transform: translateY(-5px) scale(1);
-      }
-      90% {
-        opacity: 1;
-        transform: translateY(-15px) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-25px) scale(0.5);
-      }
-    }
+          .urgent-attention {
+            animation: urgentPulse 0.6s ease-out !important;
+          }
 
-    /* Urgent attention-grabbing effect that triggers every 10 seconds */
-    @keyframes urgentPulse {
-      0% {
-        transform: scale(1);
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.69);
-      }
-      25% {
-        transform: scale(1.2);
-        box-shadow: 0 12px 35px rgba(255, 107, 107, 0.08);
-      }
-      50% {
-        transform: scale(1.1);
-        box-shadow: 0 15px 40px rgba(78, 205, 196, 0.8);
-      }
-      75% {
-        transform: scale(1.15);
-        box-shadow: 0 12px 35px rgba(69, 183, 209, 0.8);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-      }
-    }
+          @keyframes urgentPulse {
+            0% {
+              transform: scale(1);
+              box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            }
+            25% {
+              transform: scale(1.2);
+              box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
+            }
+            50% {
+              transform: scale(1.1);
+              box-shadow: 0 15px 40px rgba(78, 205, 196, 0.8);
+            }
+            75% {
+              transform: scale(1.15);
+              box-shadow: 0 12px 35px rgba(69, 183, 209, 0.8);
+            }
+            100% {
+              transform: scale(1);
+              box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            }
+          }
+        `}
+      </style>
 
-    /* Add this class via JavaScript every 10 seconds for extra attention */
-    .urgent-attention {
-      animation: urgentPulse 0.6s ease-out !important;
-    }
-  `}
-</style>
       {/* Feedback Dialog */}
       <Dialog
         open={open}
@@ -672,6 +680,7 @@ function FeedbackWidget() {
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
                   Step {step} of 2 - Help us improve your experience
+                  {userDetails.name && ` • Hello, ${userDetails.name}!`}
                 </Typography>
               </Box>
             </Box>
@@ -686,7 +695,6 @@ function FeedbackWidget() {
         </DialogTitle>
 
         <DialogContent sx={{ p: 4, minHeight: '400px', position: 'relative' }}>
-          {/* **FIXED**: Only show content when data is fully loaded and not loading */}
           {shouldShowContent ? (
             <AnimatePresence mode="wait">
               {step === 1 && (

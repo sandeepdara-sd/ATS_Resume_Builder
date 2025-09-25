@@ -5,7 +5,7 @@ const passwordResetSchema = new mongoose.Schema({
     type: String,
     required: true,
     lowercase: true,
-    trim: true
+    index: true
   },
   token: {
     type: String,
@@ -15,48 +15,90 @@ const passwordResetSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
     required: true,
+    ref: 'User',
     index: true
+  },
+  used: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  usedAt: {
+    type: Date,
+    default: null
+  },
+  expired: {
+    type: Boolean,
+    default: false
   },
   expiresAt: {
     type: Date,
     required: true,
-    default: function() {
-      return new Date(Date.now() + 3600000); // Exactly 1 hour from creation
-    }
-  },
-  used: {
-    type: Boolean,
-    default: false
-  },
-  usedAt: {
-    type: Date
+    index: true
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   }
 });
 
-// Auto-delete expired tokens after they expire
-passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
-// Index for faster queries
+// Compound indexes for better query performance
+passwordResetSchema.index({ token: 1, email: 1 });
 passwordResetSchema.index({ email: 1, used: 1 });
-passwordResetSchema.index({ token: 1, used: 1 });
-passwordResetSchema.index({ createdAt: 1 });
+passwordResetSchema.index({ userId: 1, used: 1 });
+passwordResetSchema.index({ expiresAt: 1, used: 1 });
 
-// Add a method to check if token is expired
-passwordResetSchema.methods.isExpired = function() {
-  return new Date() > this.expiresAt;
+// TTL index to automatically delete expired tokens after 24 hours
+passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hours
+
+// Pre-save middleware to ensure consistency
+passwordResetSchema.pre('save', function(next) {
+  // If marked as used, ensure usedAt is set
+  if (this.used && !this.usedAt) {
+    this.usedAt = new Date();
+  }
+  
+  // If past expiry time, mark as expired
+  if (this.expiresAt <= new Date()) {
+    this.expired = true;
+  }
+  
+  next();
+});
+
+// Static method to clean up expired tokens
+passwordResetSchema.statics.cleanupExpired = async function() {
+  const result = await this.deleteMany({
+    expiresAt: { $lte: new Date() }
+  });
+  console.log(`🧹 Cleaned up ${result.deletedCount} expired password reset tokens`);
+  return result;
 };
 
-// Add a method to get remaining time
-passwordResetSchema.methods.getRemainingTime = function() {
+// Static method to clean up used tokens older than 1 hour
+passwordResetSchema.statics.cleanupUsed = async function() {
+  const oneHourAgo = new Date(Date.now() - 3600000);
+  const result = await this.deleteMany({
+    used: true,
+    usedAt: { $lte: oneHourAgo }
+  });
+  console.log(`🧹 Cleaned up ${result.deletedCount} old used password reset tokens`);
+  return result;
+};
+
+// Instance method to check if token is valid
+passwordResetSchema.methods.isValid = function() {
   const now = new Date();
-  const remaining = this.expiresAt - now;
-  return Math.max(0, Math.floor(remaining / 1000 / 60)); // Return minutes remaining
+  return !this.used && !this.expired && this.expiresAt > now;
+};
+
+// Instance method to mark as used
+passwordResetSchema.methods.markAsUsed = async function() {
+  this.used = true;
+  this.usedAt = new Date();
+  return await this.save();
 };
 
 export default mongoose.model('PasswordReset', passwordResetSchema);

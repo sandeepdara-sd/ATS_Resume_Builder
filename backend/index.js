@@ -91,6 +91,7 @@ const getAllowedOrigins = () => {
   const prodOrigins = [
     'https://sd-resume-builder.vercel.app',
     'https://ats-resume-builder-1.onrender.com',
+    'http://localhost:3000', 
     process.env.FRONTEND_URL
   ].filter(Boolean);
 
