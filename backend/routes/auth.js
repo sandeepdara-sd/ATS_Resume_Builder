@@ -51,7 +51,7 @@ router.post('/sync-firebase-user', syncFirebaseUser);
 
 // Protected routes
 router.put('/update-password', authenticateToken, updatePassword);
-router.put('/update-user/:uid', updateUser);
-router.get('/user-profile/:uid', getUserProfile);
+ router.put('/users/:uid', updateUser);
+ router.get('/users/:uid', getUserProfile);
 
 export default router;
