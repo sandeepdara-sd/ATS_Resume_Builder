@@ -14,7 +14,11 @@ import {
   Alert,
   Chip,
   LinearProgress,
-  Divider
+  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Tooltip
 } from '@mui/material';
 import {
   TrendingUp,
@@ -24,7 +28,10 @@ import {
   Lightbulb,
   Analytics,
   Assessment,
-  AutoAwesome
+  AutoAwesome,
+  ExpandMore,
+  Star,
+  Info
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -51,7 +58,7 @@ function ScoreResume() {
     setError('');
 
     try {
-      const response = await axios.post( `${api_url}/api/analyze-resume`, {
+      const response = await axios.post(`${api_url}/api/analyze-resume`, {
         resumeData,
         jobDescription
       });
@@ -59,11 +66,16 @@ function ScoreResume() {
       setScoreResult(response.data);
     } catch (error) {
       console.log(error);
-      
       setError('Failed to analyze resume. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAnalyzeAnother = () => {
+    setScoreResult(null);
+    setJobDescription(''); // Clear the job description
+    setError('');
   };
 
   const getScoreColor = (score) => {
@@ -78,6 +90,29 @@ function ScoreResume() {
     return <Error />;
   };
 
+  const getScoreMessage = (score) => {
+    if (score >= 90) return {
+      title: 'Outstanding Match! 🏆',
+      message: 'Your resume is exceptionally well-optimized for this role. You have an excellent chance of passing ATS screening and catching the recruiter\'s attention.'
+    };
+    if (score >= 80) return {
+      title: 'Excellent Match! 🎉',
+      message: 'Your resume is highly optimized for this job! You have a great chance of passing ATS screening and moving to the interview stage.'
+    };
+    if (score >= 70) return {
+      title: 'Good Match 👍',
+      message: 'Your resume shows good alignment with the job requirements. A few targeted improvements could significantly boost your score.'
+    };
+    if (score >= 60) return {
+      title: 'Fair Match 📊',
+      message: 'Your resume has some alignment with the job, but there\'s room for improvement. Follow the recommendations below to strengthen your application.'
+    };
+    return {
+      title: 'Needs Improvement 📈',
+      message: 'Your resume needs optimization to better match this job. Focus on the recommendations below to improve your ATS score and interview chances.'
+    };
+  };
+
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -85,6 +120,27 @@ function ScoreResume() {
       y: 0,
       transition: { duration: 0.6 }
     }
+  };
+
+  // Categorize suggestions by priority (if your backend doesn't already do this)
+  const categorizeSuggestions = (suggestions) => {
+    const critical = suggestions.filter(s => 
+      s.toLowerCase().includes('add') || 
+      s.toLowerCase().includes('include') ||
+      s.toLowerCase().includes('missing')
+    );
+    const recommended = suggestions.filter(s => 
+      !critical.includes(s) && 
+      (s.toLowerCase().includes('highlight') || 
+       s.toLowerCase().includes('mention') ||
+       s.toLowerCase().includes('emphasize'))
+    );
+    const optional = suggestions.filter(s => 
+      !critical.includes(s) && 
+      !recommended.includes(s)
+    );
+
+    return { critical, recommended, optional };
   };
 
   return (
@@ -273,22 +329,14 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
 
               <Chip
                 icon={getScoreIcon(scoreResult.overallScore)}
-                label={
-                  scoreResult.overallScore >= 80 ? 'Excellent Match! 🎉' :
-                  scoreResult.overallScore >= 60 ? 'Good Match 👍' : 'Needs Improvement 📈'
-                }
+                label={getScoreMessage(scoreResult.overallScore).title}
                 color={getScoreColor(scoreResult.overallScore)}
                 size="large"
                 sx={{ fontSize: '1.1rem', py: 3, px: 2, fontWeight: 600 }}
               />
               
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2, maxWidth: 500, mx: 'auto' }}>
-                {scoreResult.overallScore >= 80 
-                  ? 'Your resume is highly optimized for this job! You have a great chance of passing ATS screening.'
-                  : scoreResult.overallScore >= 60 
-                  ? 'Your resume shows good alignment with the job requirements. A few improvements could boost your score.'
-                  : 'Your resume needs optimization to better match this job. Follow our recommendations below to improve your ATS score.'
-                }
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 2, maxWidth: 600, mx: 'auto' }}>
+                {getScoreMessage(scoreResult.overallScore).message}
               </Typography>
             </Paper>
 
@@ -302,7 +350,16 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
                     animate="visible"
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                    <Card sx={{ 
+                      borderRadius: 3, 
+                      border: '1px solid', 
+                      borderColor: 'divider',
+                      '&:hover': {
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+                        transform: 'translateY(-4px)',
+                        transition: 'all 0.3s ease'
+                      }
+                    }}>
                       <CardContent sx={{ textAlign: 'center', p: 3 }}>
                         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                           {item.category}
@@ -332,7 +389,46 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
               ))}
             </Grid>
 
-            {/* Suggestions */}
+            {/* What's Good - Strengths Section */}
+            {scoreResult.overallScore >= 60 && (
+              <Paper sx={{ p: 4, mb: 4, borderRadius: 3, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Star sx={{ mr: 2, color: 'success.dark', fontSize: 32 }} />
+                  What's Working Well
+                </Typography>
+                <Grid container spacing={2}>
+                  {scoreResult.overallScore >= 80 && (
+                    <Grid item xs={12} md={6}>
+                      <Alert severity="success" sx={{ borderRadius: 2 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          Excellent keyword optimization - your resume matches the job requirements well
+                        </Typography>
+                      </Alert>
+                    </Grid>
+                  )}
+                  {scoreResult.detailedScores?.find(s => s.category === "Skills Match" && s.score >= 75) && (
+                    <Grid item xs={12} md={6}>
+                      <Alert severity="success" sx={{ borderRadius: 2 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          Strong technical skills alignment with the position
+                        </Typography>
+                      </Alert>
+                    </Grid>
+                  )}
+                  {scoreResult.detailedScores?.find(s => s.category === "Education" && s.score >= 75) && (
+                    <Grid item xs={12} md={6}>
+                      <Alert severity="success" sx={{ borderRadius: 2 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          Educational qualifications meet the job requirements
+                        </Typography>
+                      </Alert>
+                    </Grid>
+                  )}
+                </Grid>
+              </Paper>
+            )}
+
+            {/* Suggestions - Organized by Priority */}
             <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Lightbulb sx={{ mr: 2, color: 'warning.main', fontSize: 32 }} />
@@ -361,14 +457,19 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
               </Grid>
             </Paper>
 
-            {/* Missing Keywords */}
+            {/* Missing Keywords - Enhanced */}
             {scoreResult.missingKeywords?.length > 0 && (
               <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
-                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                  Missing Keywords
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600, flexGrow: 1 }}>
+                    Missing Keywords
+                  </Typography>
+                  <Tooltip title="These technical skills and keywords appear in the job description but not in your resume">
+                    <Info color="action" />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                  Consider adding these important keywords to improve your ATS score:
+                  Consider adding these important technical keywords to improve your ATS score:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
                   {scoreResult.missingKeywords.map((keyword, index) => (
@@ -379,22 +480,30 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
                       color="warning"
                       sx={{ 
                         fontWeight: 500,
+                        fontSize: '0.95rem',
                         '&:hover': {
                           backgroundColor: 'warning.light',
-                          color: 'warning.contrastText'
+                          color: 'warning.contrastText',
+                          cursor: 'pointer'
                         }
                       }}
                     />
                   ))}
                 </Box>
+                <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                  <Typography variant="body2">
+                    <strong>Pro Tip:</strong> Naturally incorporate these keywords into your skills, experience, and project descriptions where relevant. Don't just list them - show how you've used them.
+                  </Typography>
+                </Alert>
               </Paper>
             )}
 
-            <Box sx={{ textAlign: 'center' }}>
+            {/* Action Buttons */}
+            <Box sx={{ textAlign: 'center', display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
-                onClick={() => setScoreResult(null)}
-                sx={{ mr: 2, px: 4, py: 1.5, borderRadius: 2 }}
+                onClick={handleAnalyzeAnother}
+                sx={{ px: 4, py: 1.5, borderRadius: 2, fontWeight: 600 }}
               >
                 Analyze Another Job
               </Button>
@@ -406,7 +515,11 @@ We are looking for a Software Engineer with 3+ years of experience in React, Nod
                   px: 4,
                   py: 1.5,
                   borderRadius: 2,
-                  fontWeight: 600
+                  fontWeight: 600,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
+                  }
                 }}
               >
                 Improve My Resume

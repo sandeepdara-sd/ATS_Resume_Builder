@@ -1,4 +1,4 @@
-import { model } from '../config/gemini.js';
+import { groq } from '../config/groq.js';
 
 export const generateSummary = async (req, res) => {
   try {
@@ -20,13 +20,14 @@ export const generateSummary = async (req, res) => {
          
          The summary should be 2-3 sentences highlighting their experience, expertise, and value proposition. Make sure you generate the summary as you are the user. Make it ATS-friendly and impactful. Return only the summary text without any additional formatting.`;
 
-    // console.log('Generating summary with prompt:', prompt);
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile', // or 'mixtral-8x7b-32768'
+      temperature: 0.7,
+      max_tokens: 500
+    });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const summaryText = response.text().trim();
-    
-    // console.log('Generated summary:', summaryText);
+    const summaryText = completion.choices[0]?.message?.content?.trim();
     
     res.json({ summary: summaryText });
   } catch (error) {
@@ -49,16 +50,18 @@ export const generateSkills = async (req, res) => {
       
       Existing skills: ${existingSkills ? existingSkills.join(', ') : 'None'}
       
-      Return a JSON array of skill strings. Example: ["Communication", "Problem Solving", "JavaScript", "Project Management"]`;
+      Return ONLY a JSON array of skill strings. Example: ["Communication", "Problem Solving", "JavaScript", "Project Management"]
+      Do not include any explanations, just the JSON array.`;
 
-    // console.log('Generating skills with prompt:', prompt);
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.5,
+      max_tokens: 500
+    });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let responseText = response.text().trim();
+    let responseText = completion.choices[0]?.message?.content?.trim();
     
-    // console.log('AI Skills Response:', responseText);
-
     // Clean up the response to extract JSON array
     responseText = responseText.replace(/```json\s*/, '').replace(/```\s*$/, '');
     
@@ -100,94 +103,202 @@ export const analyzeResume = async (req, res) => {
       return res.status(400).json({ error: 'Resume data and job description required' });
     }
 
-    // Clean keyword extraction helper
+    // Improved keyword extraction - filter out company names, locations, common words
+    const stopWords = new Set([
+      'the', 'and', 'for', 'with', 'from', 'this', 'that', 'will', 'have', 'been',
+      'your', 'their', 'about', 'would', 'there', 'which', 'when', 'where', 'what',
+      'pvt', 'ltd', 'company', 'innovation', 'innovations', 'tech', 'india', 'site',
+      'hyderabad', 'bangalore', 'mumbai', 'delhi', 'pune', 'chennai', 'telangana',
+      'career', 'careers', 'apply', 'application', 'email', 'phone', 'contact',
+      'send', 'resume', 'updated', 'subject', 'position', 'role', 'required'
+    ]);
+
     const extractKeywords = (text) => {
-      return text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+      // Extract words that are 3+ characters, alphanumeric
+      const words = text.toLowerCase().match(/\b[a-z0-9]{3,}\b/g) || [];
+      // Filter out stop words and return unique keywords
+      return [...new Set(words.filter(w => !stopWords.has(w)))];
     };
 
     const jdKeywords = extractKeywords(jobDescription);
-    const resumeKeywords = extractKeywords(JSON.stringify(resumeData));
-    const missingKeywords = jdKeywords.filter(k => !resumeKeywords.includes(k));
+    const resumeText = JSON.stringify(resumeData).toLowerCase();
+    
+    // Only consider keywords that appear in JD but not in resume
+    const missingKeywords = jdKeywords.filter(keyword => 
+      !resumeText.includes(keyword)
+    );
 
     const prompt = `
-You are an expert ATS resume evaluator.
+You are an expert ATS (Applicant Tracking System) resume analyzer.
 
-Analyze the resume below against the job description. Score based on:
-- Skills Match
-- Experience Relevance
-- Keywords
-- Education
+Analyze the resume against the job description and provide a detailed scoring.
 
-Use this JSON format (values are examples only):
+**Important Instructions:**
+1. Focus on TECHNICAL skills, programming languages, frameworks, tools, and relevant experience
+2. Ignore company names, locations, and generic business terms when identifying missing keywords
+3. Missing keywords should be: technical skills, tools, frameworks, methodologies mentioned in JD but absent in resume
+4. Be realistic with scores - most resumes score between 60-85
+5. Provide actionable suggestions focused on technical improvements
+
+Return your analysis in this EXACT JSON format:
 {
-  "overallScore": 78, // Must be average of detailedScores
+  "overallScore": 75,
   "detailedScores": [
     {"category": "Skills Match", "score": 80},
     {"category": "Experience Relevance", "score": 75},
     {"category": "Keywords", "score": 70},
     {"category": "Education", "score": 85}
   ],
-  "missingKeywords": ["Node.js", "Express"],
+  "missingKeywords": ["Node.js", "MongoDB", "REST API", "React.js"],
   "suggestions": [
-    "Mention Node.js and Express explicitly",
-    "Highlight experience duration in years",
-    "Add more technical terms from the job description"
+    "Add specific Node.js and Express.js experience to your skills section",
+    "Mention MongoDB or database management in your projects",
+    "Highlight any REST API development experience",
+    "Include React.js framework if you have experience with it"
   ]
 }
 
-Resume Data: ${JSON.stringify(resumeData)}
-Job Description: ${jobDescription}
+**Resume Data:**
+${JSON.stringify(resumeData, null, 2)}
 
-Ensure:
-- Scores are realistic (0-100)
-- Suggestions are practical
-- overallScore is the average of detailedScores
-- Output must be valid JSON only
+**Job Description:**
+${jobDescription}
+
+**Rules:**
+- overallScore must be the average of detailedScores (calculate it precisely)
+- missingKeywords should only include TECHNICAL terms (languages, frameworks, tools, methodologies)
+- Exclude: company names, locations, generic business words, job titles
+- Each suggestion must be specific and actionable
+- Return ONLY valid JSON, no explanations or markdown
 `;
 
-    console.log('Analyzing resume...');
+    console.log('Analyzing resume with Groq...');
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let responseText = response.text().trim();
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert ATS resume analyzer. Return only valid JSON with technical keyword analysis. Focus on skills, technologies, and frameworks - not company names or locations.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      max_tokens: 2000
+    });
+
+    let responseText = completion.choices[0]?.message?.content?.trim();
 
     // Clean formatting if code blocks present
-    responseText = responseText.replace(/```json\s*/, '').replace(/```\s*$/, '');
+    responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
 
-    // console.log('Analysis Response:', responseText);
+    console.log('Analysis Response:', responseText);
 
     try {
       const analysis = JSON.parse(responseText);
 
-      // Optional: overwrite missing keywords if model fails to extract properly
-      if (!analysis.missingKeywords || !Array.isArray(analysis.missingKeywords)) {
-        analysis.missingKeywords = missingKeywords.slice(0, 5); // limit to top 5
+      // Filter missing keywords to only include technical/relevant terms
+      if (analysis.missingKeywords && Array.isArray(analysis.missingKeywords)) {
+        analysis.missingKeywords = analysis.missingKeywords
+          .filter(keyword => {
+            const k = keyword.toLowerCase();
+            // Keep only if it's likely a technical term
+            return !stopWords.has(k) && 
+                   k.length >= 3 && 
+                   !k.match(/\d{4,}/) && // No years like 2024
+                   !k.includes('@'); // No email parts
+          })
+          .slice(0, 8); // Limit to top 8 keywords
+      } else {
+        // Fallback: use our extracted missing keywords but filter them
+        analysis.missingKeywords = missingKeywords
+          .filter(k => {
+            const lower = k.toLowerCase();
+            // Prioritize technical-sounding terms
+            return (
+              k.length >= 3 &&
+              !stopWords.has(lower) &&
+              (
+                lower.includes('js') || 
+                lower.includes('java') || 
+                lower.includes('python') ||
+                lower.includes('sql') ||
+                lower.includes('api') ||
+                lower.includes('cloud') ||
+                lower.includes('aws') ||
+                lower.includes('docker') ||
+                lower.includes('react') ||
+                lower.includes('node') ||
+                lower.includes('spring') ||
+                lower.includes('mongodb') ||
+                lower.includes('git')
+              )
+            );
+          })
+          .slice(0, 8);
       }
 
-      // Optional: re-compute overallScore if not accurate
+      // Ensure overallScore is accurate average
       const scores = analysis.detailedScores?.map(d => d.score) || [];
       if (scores.length) {
         const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         analysis.overallScore = avgScore;
       }
 
+      // Ensure we have at least some suggestions
+      if (!analysis.suggestions || analysis.suggestions.length === 0) {
+        analysis.suggestions = [
+          "Add more specific technical skills from the job description",
+          "Quantify your achievements with metrics and numbers",
+          "Include relevant keywords naturally throughout your resume",
+          "Highlight project outcomes and technologies used"
+        ];
+      }
+
       res.json(analysis);
     } catch (parseError) {
       console.error('Analysis JSON Parse Error:', parseError);
-      // Fallback analysis
+      console.error('Raw response:', responseText);
+      
+      // Enhanced fallback analysis
+      const technicalKeywords = missingKeywords.filter(k => {
+        const lower = k.toLowerCase();
+        return (
+          (lower.includes('js') || 
+           lower.includes('java') || 
+           lower.includes('python') ||
+           lower.includes('sql') ||
+           lower.includes('api') ||
+           lower.includes('react') ||
+           lower.includes('node') ||
+           lower.includes('mongodb') ||
+           lower.includes('spring') ||
+           lower.includes('git') ||
+           lower.includes('cloud') ||
+           lower.includes('aws')) &&
+          !stopWords.has(lower)
+        );
+      }).slice(0, 6);
+
       res.json({
-        overallScore: 70,
+        overallScore: 72,
         detailedScores: [
           { category: "Skills Match", score: 70 },
-          { category: "Experience Relevance", score: 65 },
+          { category: "Experience Relevance", score: 68 },
           { category: "Keywords", score: 75 },
-          { category: "Education", score: 80 }
+          { category: "Education", score: 78 }
         ],
-        missingKeywords: missingKeywords.slice(0, 5),
+        missingKeywords: technicalKeywords.length > 0 ? technicalKeywords : [
+          "Add relevant technical skills from job description"
+        ],
         suggestions: [
-          "Add more relevant keywords from the job description",
-          "Highlight specific achievements with quantifiable results",
-          "Include more technical skills mentioned in the job posting"
+          "Include specific technical frameworks and tools mentioned in the job posting",
+          "Add quantifiable achievements to your experience and projects",
+          "Highlight relevant coursework or certifications",
+          "Ensure your skills section matches the required technical stack"
         ]
       });
     }
@@ -196,60 +307,3 @@ Ensure:
     res.status(500).json({ error: 'Failed to analyze resume: ' + error.message });
   }
 };
-
-// export const scoreResume = async (req, res) => {
-//   try {
-//     const { resumeData } = req.body;
-
-//     if (!resumeData || !resumeData.personalDetails) {
-//       return res.status(400).json({ error: 'Resume data required' });
-//     }
-
-//     const prompt = `
-// Analyze this resume and provide an ATS score based on the following criteria:
-// - Completeness of sections (30%)
-// - Skills relevance and quantity (25%)
-// - Experience/Projects quality (25%)
-// - Education and achievements (20%)
-
-// Return only a JSON object with this format:
-// {
-//   "overallScore": 85,
-//   "breakdown": {
-//     "completeness": 90,
-//     "skills": 80,
-//     "experience": 85,
-//     "education": 85
-//   }
-// }
-
-// Resume Data: ${JSON.stringify(resumeData)}
-
-// Score between 0-100. Be realistic but fair.`;
-
-//     const result = await model.generateContent(prompt);
-//     const response = await result.response;
-//     let responseText = response.text().trim();
-    
-//     responseText = responseText.replace(/```json\s*/, '').replace(/```\s*$/, '');
-    
-//     try {
-//       const scoreData = JSON.parse(responseText);
-//       res.json(scoreData);
-//     } catch (parseError) {
-//       // Fallback scoring
-//       res.json({
-//         overallScore: 75,
-//         breakdown: {
-//           completeness: 75,
-//           skills: 70,
-//           experience: 80,
-//           education: 75
-//         }
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Error scoring resume:', error);
-//     res.status(500).json({ error: 'Failed to score resume: ' + error.message });
-//   }
-// };
