@@ -13,12 +13,30 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
-  Chip
+  Chip,
+  IconButton,
+  Tooltip,
+  Divider,
+  Fade,
+  Slide
 } from '@mui/material';
-import {  AlertTitle } from '@mui/material';
-import { WarningAmber, CheckCircle } from '@mui/icons-material';
+import { 
+  CheckCircle, 
+  Save, 
+  Preview, 
+  Download, 
+  AutoAwesome,
+  ZoomIn,
+  ZoomOut,
+  Visibility,
+  VisibilityOff,
+  Fullscreen,
+  FullscreenExit,
+  InfoOutlined,
+  NavigateNext,
+  NavigateBefore
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { Save, Preview, Download,  AutoAwesome } from '@mui/icons-material';
 
 import PersonalDetailsForm from '../components/forms/PersonalDetailsForm';
 import SummaryForm from '../components/forms/SummaryForm';
@@ -29,20 +47,24 @@ import SkillsForm from '../components/forms/SkillsForm';
 import AchievementsForm from '../components/forms/AchievementsForm';
 import HobbiesForm from '../components/forms/HobbiesForm';
 import ResumePreview from '../components/ResumePreview';
-import { TemplateSelector } from '../components/templates';
+import { templateComponents, TemplateSelector } from '../components/templates';
 import Navbar from '../components/Navbar';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { api_url } from '../helper/Helper';
 
+
+
 function ResumeBuilder() {
+
+  
   const { type } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, token } = useAuth();
   
   const [activeStep, setActiveStep] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState({ id: 'modern-professional', name: 'Modern Professional' });
   const [resumeData, setResumeData] = useState({
     personalDetails: {},
     summary: '',
@@ -53,6 +75,10 @@ function ResumeBuilder() {
     achievements: [],
     hobbies: []
   });
+  
+  const [showLivePreview, setShowLivePreview] = useState(true);
+  const [previewZoom, setPreviewZoom] = useState(0.55);
+  const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -196,6 +222,18 @@ function ResumeBuilder() {
     }
   };
 
+  const handleZoomIn = () => {
+    setPreviewZoom(prev => Math.min(prev + 0.1, 1.0));
+  };
+
+  const handleZoomOut = () => {
+    setPreviewZoom(prev => Math.max(prev - 0.1, 0.3));
+  };
+
+  const resetZoom = () => {
+    setPreviewZoom(0.55);
+  };
+
   const renderStepContent = (step) => {
     const stepName = steps[step];
     
@@ -233,18 +271,32 @@ function ResumeBuilder() {
         );
       case 'Experience':
         if (type === 'fresher') {
-          // Experience is optional for freshers
           if (resumeData.experience.length === 0) {
             return (
-              <Box textAlign="center" sx={{ py: 4 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Box textAlign="center" sx={{ py: 8 }}>
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 3
+                  }}
+                >
+                  <InfoOutlined sx={{ fontSize: 40, color: 'primary.main' }} />
+                </Box>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
                   Work Experience (Optional)
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
-                  As a fresher, you might not have professional work experience yet. You can skip this section or add any internships, part-time jobs, or volunteer work you've done.
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.7 }}>
+                  As a fresher, you might not have professional work experience yet. You can skip this section or add internships, part-time jobs, or volunteer work.
                 </Typography>
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   size="large"
                   onClick={() =>
                     updateResumeData('experience', [
@@ -259,7 +311,15 @@ function ResumeBuilder() {
                       }
                     ])
                   }
-                  sx={{ borderRadius: 2, px: 4 }}
+                  sx={{ 
+                    borderRadius: 2, 
+                    px: 4,
+                    py: 1.5,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    fontWeight: 600
+                  }}
                 >
                   Add Experience (Optional)
                 </Button>
@@ -272,12 +332,12 @@ function ResumeBuilder() {
                   data={resumeData.experience}
                   onChange={(data) => updateResumeData('experience', data)}
                 />
-                <Box textAlign="center" mt={3}>
+                <Box textAlign="center" mt={4}>
                   <Button
                     color="error"
                     variant="outlined"
                     onClick={() => updateResumeData('experience', [])}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ borderRadius: 2, textTransform: 'none' }}
                   >
                     Remove Experience Section
                   </Button>
@@ -286,7 +346,6 @@ function ResumeBuilder() {
             );
           }
         } else {
-          // Experience is mandatory for experienced professionals
           return (
             <ExperienceForm
               data={resumeData.experience}
@@ -296,18 +355,32 @@ function ResumeBuilder() {
         }
       case 'Projects':
         if (type === 'experienced') {
-          // Projects are optional for experienced professionals
           if (resumeData.projects.length === 0) {
             return (
-              <Box textAlign="center" sx={{ py: 4 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Box textAlign="center" sx={{ py: 8 }}>
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 3
+                  }}
+                >
+                  <InfoOutlined sx={{ fontSize: 40, color: 'primary.main' }} />
+                </Box>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
                   Personal Projects (Optional)
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
-                  As an experienced professional, your work experience is the main focus. You can optionally add personal projects, side projects, or freelance work that showcase additional skills.
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.7 }}>
+                  As an experienced professional, your work experience is the main focus. Optionally add personal projects, side projects, or freelance work.
                 </Typography>
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   size="large"
                   onClick={() =>
                     updateResumeData('projects', [
@@ -319,7 +392,15 @@ function ResumeBuilder() {
                       }
                     ])
                   }
-                  sx={{ borderRadius: 2, px: 4 }}
+                  sx={{ 
+                    borderRadius: 2, 
+                    px: 4,
+                    py: 1.5,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    fontWeight: 600
+                  }}
                 >
                   Add Projects (Optional)
                 </Button>
@@ -333,12 +414,12 @@ function ResumeBuilder() {
                   type={type}
                   onChange={(data) => updateResumeData('projects', data)}
                 />
-                <Box textAlign="center" mt={3}>
+                <Box textAlign="center" mt={4}>
                   <Button
                     color="error"
                     variant="outlined"
                     onClick={() => updateResumeData('projects', [])}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ borderRadius: 2, textTransform: 'none' }}
                   >
                     Remove Projects Section
                   </Button>
@@ -347,7 +428,6 @@ function ResumeBuilder() {
             );
           }
         } else {
-          // Projects are important for freshers to showcase their skills
           return (
             <ProjectsForm
               data={resumeData.projects}
@@ -398,132 +478,134 @@ function ResumeBuilder() {
     );
   }
 
-  const progress = activeStep === steps.length - 1 ? 100 : (activeStep / steps.length) * 100;
+  const progress = ((activeStep + 1) / steps.length) * 100;
+  const TemplateComponent = selectedTemplate 
+    ? templateComponents[selectedTemplate.id] 
+    : templateComponents['modern-professional'];
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#fafbfc' }}>
       <Navbar />
 
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h3"
-              sx={{
-                mb: 2,
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Resume Builder
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Chip 
-                icon={<AutoAwesome />}
-                label={type === 'fresher' ? 'Fresher Template' : 'Professional Template'} 
-                color="primary" 
-                sx={{ fontWeight: 600 }} 
-              />
-              <Chip 
-                label={`Step ${activeStep + 1} of ${steps.length}`} 
-                color="secondary" 
-                sx={{ fontWeight: 600 }} 
-              />
-              {selectedTemplate && (
-                <Chip
-                  icon={selectedTemplate.icon}
-                  label={selectedTemplate.name}
-                  sx={{
-                    backgroundColor: `${selectedTemplate.color}15`,
-                    color: selectedTemplate.color,
-                    fontWeight: 600
-                  }}
-                />
-              )}
-            </Box>
-            
-           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Box 
-              sx={{
-                mb: 4,
-                display: 'flex',
-                
-                gap: 2,
-                
-              }}
-            >
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0] 
-                }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity,
-                  ease: "easeInOut" 
+      {/* Clean Header Section */}
+      <Box 
+        sx={{ 
+          bgcolor: 'white', 
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100
+        }}
+      >
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 0.5
                 }}
               >
-                <WarningAmber sx={{ color: '#f57c00', fontSize: 26 }} />
-              </motion.div>
-              <Typography 
-                variant="body1" 
+                Resume Builder
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                {type === 'fresher' ? 'Fresher Resume' : 'Professional Resume'}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setShowLivePreview(!showLivePreview)}
                 sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
                   fontWeight: 600,
-                  color: '#e65100',
-                  fontSize: '0.8rem'
+                  borderWidth: 2,
+                  '&:hover': { borderWidth: 2 }
                 }}
               >
-                Please verify all details before saving or downloading your resume
-              </Typography>
-            </Box>
-          </motion.div>
-                      
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Progress: {Math.round(progress)}% Complete
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={progress} 
-                sx={{ 
-                  height: 8, 
-                  borderRadius: 4,
-                  backgroundColor: 'grey.200',
-                  '& .MuiLinearProgress-bar': {
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: 4
-                  }
-                }} 
-              />
+                {showLivePreview ? 'Hide' : 'Show'} Preview
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Preview />}
+                onClick={() => setShowPreview(true)}
+                disabled={!selectedTemplate}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 3
+                }}
+              >
+                Full Preview
+              </Button>
             </Box>
           </Box>
-        </motion.div>
 
-        <Grid container spacing={4}>
-          {/* Stepper */}
-          <Grid item xs={12} md={3}>
-            <Paper sx={{ p: 3, position: 'sticky', top: 100, borderRadius: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Resume Sections
+          {/* Progress Bar */}
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                Step {activeStep + 1} of {steps.length}: {steps[activeStep]}
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                {Math.round(progress)}% Complete
+              </Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={progress} 
+              sx={{ 
+                height: 6, 
+                borderRadius: 3,
+                bgcolor: 'grey.200',
+                '& .MuiLinearProgress-bar': {
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: 3
+                }
+              }} 
+            />
+          </Box>
+        </Container>
+      </Box>
+
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Grid container spacing={3}>
+          {/* Compact Stepper Sidebar */}
+          <Grid item xs={12} md={showLivePreview ? 2.5 : 3}>
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 2.5, 
+                position: 'sticky', 
+                top: 140, 
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 700, mb: 2, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: 1 }}>
+                Sections
               </Typography>
               <Stepper 
                 activeStep={activeStep} 
                 orientation="vertical"
                 sx={{ 
                   '& .MuiStepLabel-root': {
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    py: 0.5
+                  },
+                  '& .MuiStepConnector-root': {
+                    ml: 1.5
                   }
                 }}
               >
@@ -538,137 +620,406 @@ function ResumeBuilder() {
                       onClick={() => handleStepClick(index)}
                     >
                       <StepLabel
-                        optional={isOptional ? <Typography variant="caption">Optional</Typography> : null}
+                        optional={isOptional ? <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>Optional</Typography> : null}
                         sx={{
                           '& .MuiStepLabel-label': {
-                            fontWeight: index === activeStep ? 600 : 400,
-                            color: index === activeStep ? 'primary.main' : 'text.secondary'
+                            fontWeight: index === activeStep ? 700 : 500,
+                            color: index === activeStep ? 'primary.main' : 'text.secondary',
+                            fontSize: '0.875rem'
                           }
                         }}
                       >
                         {label}
-                        {index < activeStep && (
-                          <CheckCircle sx={{ ml: 1, fontSize: 16, color: 'success.main' }} />
-                        )}
                       </StepLabel>
                     </Step>
                   );
                 })}
               </Stepper>
               
-              <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Divider sx={{ my: 3 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Button
                   variant="outlined"
                   startIcon={<Save />}
                   onClick={saveResume}
                   disabled={saving}
                   fullWidth
-                  sx={{ mb: 2, borderRadius: 2 }}
+                  sx={{ 
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: 1,
+                    borderWidth: 2,
+                    '&:hover': { borderWidth: 2 }
+                  }}
                 >
                   {saving ? 'Saving...' : 'Save Draft'}
                 </Button>
                 <Button
                   variant="contained"
-                  startIcon={<Preview />}
-                  onClick={() => setShowPreview(true)}
+                  startIcon={<Download />}
+                  onClick={downloadResume}
+                  disabled={downloading || !selectedTemplate}
                   fullWidth
-                  disabled={!selectedTemplate && activeStep === 0}
                   sx={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: 2
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: 1
                   }}
                 >
-                  Preview Resume
+                  {downloading ? 'Downloading...' : 'Download PDF'}
                 </Button>
               </Box>
             </Paper>
           </Grid>
 
-          {/* Form Content */}
-          <Grid item xs={12} md={9}>
-            <motion.div
-              key={activeStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Paper sx={{ p: 4, borderRadius: 3 }}>
-                <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                  {steps[activeStep]}
-                  {((type === 'fresher' && steps[activeStep] === 'Experience') || 
-                    (type === 'experienced' && steps[activeStep] === 'Projects')) && (
-                    <Chip 
-                      label="Optional" 
-                      size="small" 
-                      color="secondary" 
-                      sx={{ ml: 2, fontWeight: 500 }} 
-                    />
-                  )}
-                </Typography>
-                
-                {renderStepContent(activeStep)}
+          {/* Main Form Content */}
+          <Grid item xs={12} md={showLivePreview ? 4.5 : 9}>
+            <Slide direction="left" in={true} mountOnEnter unmountOnExit key={activeStep}>
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: 4, 
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  minHeight: 500
+                }}
+              >
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, mb: 1 }}>
+                    {steps[activeStep]}
+                    {((type === 'fresher' && steps[activeStep] === 'Experience') || 
+                      (type === 'experienced' && steps[activeStep] === 'Projects')) && (
+                      <Chip 
+                        label="Optional" 
+                        size="small" 
+                        sx={{ 
+                          ml: 2, 
+                          fontWeight: 600,
+                          bgcolor: 'warning.light',
+                          color: 'warning.dark'
+                        }} 
+                      />
+                    )}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                    {activeStep === 0 && 'Choose a professional template for your resume'}
+                    {activeStep === 1 && 'Enter your contact information'}
+                    {activeStep === 2 && 'Write a compelling professional summary'}
+                    {activeStep > 2 && `Add your ${steps[activeStep].toLowerCase()}`}
+                  </Typography>
+                </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 6 }}>
+                <Box sx={{ mb: 4 }}>
+                  {renderStepContent(activeStep)}
+                </Box>
+
+                <Divider sx={{ my: 4 }} />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Button
                     disabled={activeStep === 0}
                     onClick={handleBack}
                     size="large"
-                    sx={{ px: 4, borderRadius: 2 }}
+                    startIcon={<NavigateBefore />}
+                    sx={{ 
+                      px: 3,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 600
+                    }}
                   >
                     Back
                   </Button>
                   
-                  <Box>
-                    {activeStep === steps.length - 1 ? (
-                      <Button
-                        variant="contained"
-                        onClick={() => setShowPreview(true)}
-                        size="large"
-                        startIcon={<Preview />}
-                        disabled={!selectedTemplate}
-                        sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          px: 4,
-                          borderRadius: 2,
-                          fontWeight: 600
-                        }}
+                  {activeStep === steps.length - 1 ? (
+                    <Button
+                      variant="contained"
+                      onClick={() => setShowPreview(true)}
+                      size="large"
+                      startIcon={<Preview />}
+                      disabled={!selectedTemplate}
+                      sx={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        px: 4,
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Preview Resume
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      size="large"
+                      endIcon={<NavigateNext />}
+                      disabled={activeStep === 0 && !selectedTemplate}
+                      sx={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        px: 4,
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Next
+                    </Button>
+                  )}
+                </Box>
+              </Paper>
+            </Slide>
+          </Grid>
+
+          {/* Live Preview Panel */}
+          {showLivePreview && selectedTemplate && (
+            <Grid item xs={12} md={5}>
+              <Paper
+                elevation={0}
+                sx={{
+                  position: 'sticky',
+                  top: 140,
+                  height: 'calc(100vh - 160px)',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                {/* Preview Controls */}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    bgcolor: '#fafbfc'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Live Preview
+                    </Typography>
+                    <Chip
+                      label={`${Math.round(previewZoom * 100)}%`}
+                      size="small"
+                      sx={{ 
+                        height: 24,
+                        fontWeight: 600,
+                        bgcolor: 'primary.light',
+                        color: 'primary.dark'
+                      }}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Tooltip title="Zoom Out" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleZoomOut}
+                          disabled={previewZoom <= 0.3}
+                          sx={{ bgcolor: 'background.paper' }}
+                        >
+                          <ZoomOut fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    
+                    <Tooltip title="Reset Zoom" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={resetZoom}
+                        sx={{ bgcolor: 'background.paper', px: 1.5 }}
                       >
-                        Preview Resume
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="contained"
-                        onClick={handleNext}
-                        size="large"
-                        disabled={activeStep === 0 && !selectedTemplate}
-                        sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          px: 4,
-                          borderRadius: 2,
-                          fontWeight: 600
-                        }}
+                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                          Reset
+                        </Typography>
+                      </IconButton>
+                    </Tooltip>
+                    
+                    <Tooltip title="Zoom In" arrow>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleZoomIn}
+                          disabled={previewZoom >= 1.0}
+                          sx={{ bgcolor: 'background.paper' }}
+                        >
+                          <ZoomIn fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+                    
+                    <Tooltip title="Fullscreen" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={() => setIsFullscreenPreview(true)}
+                        sx={{ bgcolor: 'background.paper' }}
                       >
-                        Next
-                      </Button>
-                    )}
+                        <Fullscreen fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+
+                {/* Preview Content */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                    bgcolor: '#f5f5f5',
+                    p: 2,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      transform: `scale(${previewZoom})`,
+                      transformOrigin: 'top center',
+                      transition: 'transform 0.2s ease',
+                      width: '8.5in',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                      bgcolor: 'white'
+                    }}
+                  >
+                    {TemplateComponent && <TemplateComponent resumeData={resumeData} />}
                   </Box>
                 </Box>
               </Paper>
-            </motion.div>
-          </Grid>
+            </Grid>
+          )}
         </Grid>
       </Container>
 
-      {/* Snackbar for notifications */}
+      {/* Fullscreen Preview Modal */}
+      {isFullscreenPreview && (
+        <Fade in={isFullscreenPreview}>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              bgcolor: 'rgba(0,0,0,0.97)',
+              zIndex: 2000,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Fullscreen Controls */}
+            <Box
+              sx={{
+                p: 2.5,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                bgcolor: 'rgba(255,255,255,0.05)',
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+                Fullscreen Preview
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Tooltip title="Zoom Out" arrow>
+                  <span>
+                    <IconButton
+                      onClick={handleZoomOut}
+                      disabled={previewZoom <= 0.3}
+                      sx={{ color: 'white' }}
+                    >
+                      <ZoomOut />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                
+                <Chip
+                  label={`${Math.round(previewZoom * 100)}%`}
+                  sx={{ bgcolor: 'white', fontWeight: 700, color: 'text.primary' }}
+                />
+                
+                <Tooltip title="Zoom In" arrow>
+                  <span>
+                    <IconButton
+                      onClick={handleZoomIn}
+                      disabled={previewZoom >= 1.0}
+                      sx={{ color: 'white' }}
+                    >
+                      <ZoomIn />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.2)' }} />
+                
+                <Tooltip title="Exit Fullscreen" arrow>
+                  <IconButton onClick={() => setIsFullscreenPreview(false)} sx={{ color: 'white' }}>
+                    <FullscreenExit />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {/* Fullscreen Preview Content */}
+            <Box
+              sx={{
+                flex: 1,
+                overflow: 'auto',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                p: 4
+              }}
+            >
+              <Box
+                sx={{
+                  transform: `scale(${previewZoom})`,
+                  transformOrigin: 'top center',
+                  transition: 'transform 0.2s ease',
+                  width: '8.5in',
+                  boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+                  bgcolor: 'white'
+                }}
+              >
+                {TemplateComponent && <TemplateComponent resumeData={resumeData} />}
+              </Box>
+            </Box>
+          </Box>
+        </Fade>
+      )}
+
+      {/* Snackbar Notifications */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          variant="filled"
+          sx={{ 
+            width: '100%',
+            borderRadius: 2,
+            fontWeight: 600
+          }}
         >
           {snackbar.message}
         </Alert>
