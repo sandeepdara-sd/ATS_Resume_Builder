@@ -18,7 +18,8 @@ import {
   Tooltip,
   Divider,
   Fade,
-  Slide
+  Slide,
+  CircularProgress
 } from '@mui/material';
 import { 
   CheckCircle, 
@@ -520,6 +521,24 @@ function ResumeBuilder() {
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
+              
+
+                <Button
+                variant="contained"
+                startIcon={<Download />}
+                onClick={downloadResume}
+                disabled={downloading || !selectedTemplate}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 3
+                }}
+              >
+                {downloading ? 'Downloading...' : 'Download PDF'}
+              </Button>
+
               <Button
                 variant="outlined"
                 onClick={() => setShowLivePreview(!showLivePreview)}
@@ -822,6 +841,32 @@ function ResumeBuilder() {
                   </Box>
                   
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Tooltip title={downloading ? "Downloading..." : "Download PDF"} arrow>
+                      <span>
+                        <IconButton 
+                          onClick={downloadResume}
+                          disabled={downloading || !selectedTemplate}
+                          sx={{
+                            bgcolor: downloading ? 'primary.main' : 'background.paper',
+                            color: downloading ? 'white' : 'text.primary',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              bgcolor: downloading ? 'primary.dark' : 'grey.100'
+                            },
+                            '&.Mui-disabled': {
+                              bgcolor: 'grey.200',
+                              color: 'grey.400'
+                            }
+                          }}
+                        >
+                          {downloading ? (
+                            <CircularProgress size={20} sx={{ color: 'white' }} />
+                          ) : (
+                            <Download fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                     <Tooltip title="Zoom Out" arrow>
                       <span>
                         <IconButton
